@@ -10,14 +10,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const apiKey = process.env.GEMINI_API_KEY || "";
-if (!apiKey) {
-  console.warn("WARNING: GEMINI_API_KEY is not set in environment variables.");
-}
+// Extract all available API keys into a resilient multi-key pool
+const getAvailableApiKeys = (customHeaderKey = "") => {
+  const keys = new Set();
+  if (customHeaderKey && typeof customHeaderKey === "string" && customHeaderKey.trim()) {
+    keys.add(customHeaderKey.trim());
+  }
+  if (process.env.GEMINI_API_KEYS) {
+    process.env.GEMINI_API_KEYS.split(",").forEach((k) => {
+      if (k.trim()) keys.add(k.trim());
+    });
+  }
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
+    keys.add(process.env.GEMINI_API_KEY.trim());
+  }
+  return Array.from(keys);
+};
 
-const ai = new GoogleGenAI({ apiKey });
-
-// Priority list of fast, high-rate-limit models with fallback
+// Priority list of fast models with fallback
 const CANDIDATE_MODELS = [
   "gemini-flash-lite-latest",
   "gemini-3.5-flash-lite",
@@ -47,26 +57,81 @@ const cleanJson = (text) => {
   }
 };
 
-// Robust model caller with automatic failover
-async function callGeminiWithFailover(apiCallFn) {
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY not configured on server");
-  }
+// Robust multi-key and multi-model caller with automatic failover
+async function callGeminiWithKeyAndModelRotation(customHeaderKey, apiCallFn) {
+  const apiKeys = getAvailableApiKeys(customHeaderKey);
   let lastError = null;
-  for (const modelName of CANDIDATE_MODELS) {
-    try {
-      const result = await apiCallFn(modelName);
-      return result;
-    } catch (err) {
-      console.warn(`[Failover] Model ${modelName} failed: ${err.message}`);
-      lastError = err;
-      continue;
+
+  for (const currentKey of apiKeys) {
+    const aiInstance = new GoogleGenAI({ apiKey: currentKey });
+    for (const modelName of CANDIDATE_MODELS) {
+      try {
+        const result = await apiCallFn(aiInstance, modelName);
+        return result;
+      } catch (err) {
+        console.warn(`[Failover] Key (${currentKey.slice(0, 8)}...) on Model (${modelName}) failed: ${err.message}`);
+        lastError = err;
+        // If error is 429 quota or rate limit, break out of this key to try the next key immediately
+        if (err.message && (err.message.includes("429") || err.message.includes("quota") || err.message.includes("RESOURCE_EXHAUSTED"))) {
+          break;
+        }
+      }
     }
   }
-  throw lastError || new Error("All Gemini models failed");
+
+  throw lastError || new Error("No available Gemini API key responded");
 }
 
-// Extensive, Diverse, High-Yield Campus Placement PYQ Question Bank (No-Repeat Shuffle Pool)
+// Smart Local Fallback Response Engine for Common Placement Concepts
+const getLocalSmartResponse = (promptText = "") => {
+  const query = promptText.toLowerCase();
+
+  if (query.includes("malloc") && query.includes("calloc")) {
+    return `### Difference between \`malloc()\` and \`calloc()\` in C:
+
+| Feature | \`malloc()\` | \`calloc()\` |
+| :--- | :--- | :--- |
+| **Full Form** | Memory Allocation | Contiguous Allocation |
+| **Arguments** | 1 argument: \`malloc(size_t size)\` | 2 arguments: \`calloc(size_t num, size_t size)\` |
+| **Initialization**| Allocates uninitialized memory (contains **garbage values**). | Initializes all allocated bytes to **zero (0)**. |
+| **Speed** | Marginally faster as it skips initialization. | Slightly slower due to zero-clearing. |
+| **Return Value** | Returns \`void*\` pointer to first byte, or \`NULL\` on failure. | Returns \`void*\` pointer to first byte, or \`NULL\` on failure. |
+
+\`\`\`c
+// Example Usage:
+int *arr1 = (int*) malloc(5 * sizeof(int)); // Garbage values
+int *arr2 = (int*) calloc(5, sizeof(int));  // All elements are 0
+\`\`\`
+`;
+  }
+
+  if (query.includes("acid") || query.includes("dbms")) {
+    return `### ACID Properties in DBMS (Fund Transfer Example)
+
+1. **Atomicity (All or Nothing)**: Either all operations of a transaction execute successfully, or none do. If money is deducted from Account A, it must reach Account B; if power fails midway, it rolls back.
+2. **Consistency**: The database remains in a valid state before and after the transaction (Total sum in Account A + B remains unchanged).
+3. **Isolation**: Concurrent transactions execute without interfering with one another.
+4. **Durability**: Once committed, changes persist permanently even in the event of a system crash.`;
+  }
+
+  if (query.includes("oops") || query.includes("pillar")) {
+    return `### 4 Pillars of OOPs (Object-Oriented Programming):
+
+1. **Encapsulation**: Bundling data (variables) and methods (functions) inside a single unit (class) and restricting direct access using private access modifiers (getters/setters).
+2. **Abstraction**: Hiding internal implementation details and exposing only the essential interface (using abstract classes or interfaces).
+3. **Inheritance**: Mechanism where a child class acquires properties and behaviors from a parent class (\`extends\` / \`:\`), promoting code reusability.
+4. **Polymorphism**: Ability of a message or function to be processed in more than one form (Compile-time Method Overloading & Runtime Method Overriding).`;
+  }
+
+  return `### Key Concept Summary for: "${promptText}"
+
+* **Definition & Core Purpose**: In technical interviews, start by defining the term directly in 1-2 clear sentences.
+* **Working Mechanism**: Explain how memory, time complexity, or execution flow works under the hood.
+* **Trade-offs / Alternatives**: Compare with standard alternatives (e.g. Array vs Linked List, TCP vs UDP, Stack vs Heap).
+* **Placement Tip**: Mention edge cases and write a quick code snippet with proper syntax when discussing this in the interview round.`;
+};
+
+// Curated Anti-Repeat High-Yield Campus Placement Question Bank
 const FALLBACK_QUESTIONS = {
   "Placement Technical MCQ & Pseudo-Code": [
     {
@@ -474,79 +539,79 @@ const router = express.Router();
 
 // 1. Health Check
 router.get("/health", (req, res) => {
+  const customHeaderKey = req.headers["x-gemini-api-key"] || "";
+  const keys = getAvailableApiKeys(customHeaderKey);
   res.json({
     status: "ok",
     server: "Aiva High-Speed PYQ Placement Engine",
+    activeKeysCount: keys.length,
     models: CANDIDATE_MODELS,
-    hasApiKey: Boolean(apiKey),
+    hasApiKey: keys.length > 0,
     time: new Date().toISOString(),
   });
 });
 
-// 2. Chat Route (Streaming with automatic model failover)
+// 2. Chat Route (Streaming with automatic key rotation and offline smart response engine)
 router.post("/chat", async (req, res) => {
-  try {
-    const { prompt, history } = req.body || {};
-    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-      return res.status(400).json({ error: "Valid text prompt is required" });
-    }
+  const { prompt, history } = req.body || {};
+  const customHeaderKey = req.headers["x-gemini-api-key"] || "";
 
-    let contents = [];
-    if (Array.isArray(history) && history.length > 0) {
-      const recentHistory = history.slice(-8);
-      contents = recentHistory
-        .filter((msg) => msg && msg.text && msg.sender)
-        .map((msg) => ({
-          role: msg.sender === "user" ? "user" : "model",
-          parts: [{ text: msg.text }],
-        }));
-    }
-
-    contents.push({
-      role: "user",
-      parts: [{ text: prompt.trim() }],
-    });
-
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-
-    let streamSuccess = false;
-    if (apiKey) {
-      for (const modelName of CANDIDATE_MODELS) {
-        try {
-          const stream = await ai.models.generateContentStream({
-            model: modelName,
-            contents: contents,
-            config: {
-              maxOutputTokens: 1024,
-              systemInstruction:
-                "You are Aiva, an intelligent, helpful, and ultra-fast AI assistant & placement mentor. Provide concise, clear, and visually well-formatted responses using Markdown, code snippets, and structured bullet points when helpful.",
-            },
-          });
-
-          for await (const chunk of stream) {
-            if (chunk.text) res.write(chunk.text);
-          }
-          streamSuccess = true;
-          break;
-        } catch (err) {
-          console.warn(`[Chat Stream Failover] Model ${modelName} failed: ${err.message}`);
-        }
-      }
-    }
-
-    if (!streamSuccess) {
-      res.write("Hello! I am Aiva, your tech placement mentor. Ask me any programming or CS doubt, or test your skills in the **MCQ & Viva** sections!");
-    }
-
-    res.end();
-  } catch (error) {
-    console.error("Chat Error Detail:", error);
-    if (!res.headersSent) {
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.write("Hello! I am Aiva, your tech placement mentor. Feel free to ask any question regarding C, C++, Java, Python, DBMS, OS, or placement interview topics.");
-    }
-    res.end();
+  if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+    return res.status(400).json({ error: "Valid text prompt is required" });
   }
+
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+
+  let contents = [];
+  if (Array.isArray(history) && history.length > 0) {
+    const recentHistory = history.slice(-8);
+    contents = recentHistory
+      .filter((msg) => msg && msg.text && msg.sender)
+      .map((msg) => ({
+        role: msg.sender === "user" ? "user" : "model",
+        parts: [{ text: msg.text }],
+      }));
+  }
+
+  // Ensure first message starts with role user if history exists
+  if (contents.length > 0 && contents[0].role === "model") {
+    contents.shift();
+  }
+
+  contents.push({
+    role: "user",
+    parts: [{ text: prompt.trim() }],
+  });
+
+  let streamSuccess = false;
+
+  try {
+    await callGeminiWithKeyAndModelRotation(customHeaderKey, async (aiInstance, modelName) => {
+      const stream = await aiInstance.models.generateContentStream({
+        model: modelName,
+        contents: contents,
+        config: {
+          maxOutputTokens: 1024,
+          systemInstruction:
+            "You are Aiva, an intelligent, helpful, and ultra-fast AI assistant & placement mentor. Provide concise, clear, and visually well-formatted responses using Markdown, code snippets, and structured bullet points when helpful.",
+        },
+      });
+
+      for await (const chunk of stream) {
+        if (chunk.text) res.write(chunk.text);
+      }
+      streamSuccess = true;
+    });
+  } catch (error) {
+    console.warn("Live chat stream fallback triggered:", error.message);
+  }
+
+  if (!streamSuccess) {
+    const smartFallback = getLocalSmartResponse(prompt);
+    res.write(smartFallback);
+  }
+
+  res.end();
 });
 
 // 3. Viva: Generate Placement PYQ Question (MCQ & Theoretical Support)
@@ -558,6 +623,7 @@ router.post("/viva/question", async (req, res) => {
     recentQuestions = []
   } = req.body || {};
 
+  const customHeaderKey = req.headers["x-gemini-api-key"] || "";
   const isMcq = topic.includes("MCQ") || (req.body.subTopic && req.body.subTopic.includes("MCQ"));
 
   try {
@@ -626,8 +692,8 @@ Return ONLY valid JSON matching this schema:
 }`;
     }
 
-    const data = await callGeminiWithFailover(async (modelName) => {
-      const response = await ai.models.generateContent({
+    const data = await callGeminiWithKeyAndModelRotation(customHeaderKey, async (aiInstance, modelName) => {
+      const response = await aiInstance.models.generateContent({
         model: modelName,
         contents: prompt,
         config: {
@@ -683,6 +749,8 @@ router.post("/viva/evaluate", async (req, res) => {
     explanation = null
   } = req.body || {};
 
+  const customHeaderKey = req.headers["x-gemini-api-key"] || "";
+
   if (!userAnswer || !userAnswer.trim()) {
     return res.status(400).json({ error: "User answer is required" });
   }
@@ -720,8 +788,8 @@ Evaluate constructively for campus recruitment standards. Return ONLY a JSON obj
   "idealAnswer": "Concise, benchmark placement model answer formatted with markdown bolding and bullet points"
 }`;
 
-    const data = await callGeminiWithFailover(async (modelName) => {
-      const response = await ai.models.generateContent({
+    const data = await callGeminiWithKeyAndModelRotation(customHeaderKey, async (aiInstance, modelName) => {
+      const response = await aiInstance.models.generateContent({
         model: modelName,
         contents: prompt,
         config: {

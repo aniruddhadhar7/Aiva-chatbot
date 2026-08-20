@@ -68,6 +68,14 @@ const SUGGESTIONS_CATEGORIES = {
   ],
 };
 
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" &&
+  window.location.hostname === "localhost" &&
+  window.location.port === "5173"
+    ? "http://localhost:5000/api"
+    : "/api");
+
 // Formatter ensuring code snippets in questions are properly formatted multi-line blocks
 const formatQuestionContent = (text) => {
   if (!text) return "";
@@ -115,6 +123,21 @@ export default function App() {
   const [mode, setMode] = useState("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Custom User API Key State (Optional, stored in browser)
+  const [userApiKey, setUserApiKey] = useState(() => {
+    return localStorage.getItem("aiva_user_api_key") || "";
+  });
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [tempKeyInput, setTempKeyInput] = useState("");
+
+  const saveCustomApiKey = () => {
+    const trimmed = tempKeyInput.trim();
+    localStorage.setItem("aiva_user_api_key", trimmed);
+    setUserApiKey(trimmed);
+    setShowKeyModal(false);
+    showToast(trimmed ? "Custom Gemini API Key Saved!" : "Reverted to Server Shared Key Pool", "success");
+  };
 
   // Toast notification helper
   const showToast = (message, type = "info") => {
@@ -269,9 +292,12 @@ export default function App() {
     setChatLoading(true);
 
     try {
+      const headers = { "Content-Type": "application/json" };
+      if (userApiKey) headers["x-gemini-api-key"] = userApiKey;
+
       const res = await fetch(`${API_BASE}/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ prompt: text, history: messages }),
       });
 
@@ -353,13 +379,20 @@ export default function App() {
     setShowHint(false);
 
     try {
-      const res = await axios.post(`${API_BASE}/viva/question`, {
-        topic: isMcqMode ? "Placement Technical MCQ & Pseudo-Code" : topic,
-        subTopic: topic,
-        difficulty,
-        company,
-        recentQuestions: askedQuestions,
-      });
+      const headers = {};
+      if (userApiKey) headers["x-gemini-api-key"] = userApiKey;
+
+      const res = await axios.post(
+        `${API_BASE}/viva/question`,
+        {
+          topic: isMcqMode ? "Placement Technical MCQ & Pseudo-Code" : topic,
+          subTopic: topic,
+          difficulty,
+          company,
+          recentQuestions: askedQuestions,
+        },
+        { headers }
+      );
 
       if (res.data && res.data.question) {
         setVivaData(res.data);
@@ -371,7 +404,7 @@ export default function App() {
       console.error("Question fetch error:", err);
       const isMcq = isMcqMode;
       const fallbackQ = isMcq
-        ? "What is the output of the following C code?\n```c\n#include <stdio.h>\nint main() {\n    int a = 10, b = 20;\n    if (a = 5)\n        b = 30;\n    printf(\"%d %d\", a, b);\n    return 0;\n}\n```"
+        ? "What is the output of the following C code?\n```c\n#include <stdio.h>\n\nint main() {\n    int a = 10, b = 20;\n    if (a = 5) {\n        b = 30;\n    }\n    printf(\"%d %d\", a, b);\n    return 0;\n}\n```"
         : `Explain core memory layout, key syntax, and practical placement interview scenarios in ${topic}.`;
       
       setVivaData({
@@ -431,15 +464,22 @@ export default function App() {
     const isMcq = Boolean(vivaData.options && vivaData.options.length > 0);
 
     try {
-      const res = await axios.post(`${API_BASE}/viva/evaluate`, {
-        question: vivaData.question,
-        userAnswer: finalAnswer,
-        topic: selectedTopic,
-        difficulty: selectedDifficulty,
-        isMcq,
-        correctOption: vivaData.correctOption,
-        explanation: vivaData.explanation
-      });
+      const headers = {};
+      if (userApiKey) headers["x-gemini-api-key"] = userApiKey;
+
+      const res = await axios.post(
+        `${API_BASE}/viva/evaluate`,
+        {
+          question: vivaData.question,
+          userAnswer: finalAnswer,
+          topic: selectedTopic,
+          difficulty: selectedDifficulty,
+          isMcq,
+          correctOption: vivaData.correctOption,
+          explanation: vivaData.explanation,
+        },
+        { headers }
+      );
 
       setEvaluation(res.data);
 
@@ -495,6 +535,52 @@ export default function App() {
         </div>
       )}
 
+      {/* API Key Modal */}
+      {showKeyModal && (
+        <div className="modal-backdrop" onClick={() => setShowKeyModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🔑 API Key & Quota Settings</h3>
+              <button className="drawer-close-btn" onClick={() => setShowKeyModal(false)}>✕</button>
+            </div>
+            <p className="modal-desc">
+              Aiva uses an auto-rotating pool of Gemini API keys. To ensure <strong>unlimited instant access</strong> with zero rate limits, you can optionally paste your free Google Gemini API Key below.
+            </p>
+            <div className="modal-input-group">
+              <label>Your Google Gemini API Key (Optional)</label>
+              <input
+                type="password"
+                placeholder="AIzaSy... (leave blank to use auto server pool)"
+                value={tempKeyInput}
+                onChange={(e) => setTempKeyInput(e.target.value)}
+              />
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="modal-btn-secondary"
+                onClick={() => {
+                  setTempKeyInput("");
+                  localStorage.removeItem("aiva_user_api_key");
+                  setUserApiKey("");
+                  setShowKeyModal(false);
+                  showToast("Using Server Auto-Rotating Key Pool", "info");
+                }}
+              >
+                Use Server Pool
+              </button>
+              <button
+                type="button"
+                className="modal-btn-primary"
+                onClick={saveCustomApiKey}
+              >
+                Save & Apply Key
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="chat-container">
         {/* Navigation Bar - Fully Responsive */}
         <header className="chat-header">
@@ -511,6 +597,19 @@ export default function App() {
           </div>
 
           <div className="header-actions">
+            {/* API Key Settings Button */}
+            <button
+              className="key-settings-btn"
+              onClick={() => {
+                setTempKeyInput(userApiKey);
+                setShowKeyModal(true);
+              }}
+              title="API Key & Quota Settings"
+              aria-label="API Key Settings"
+            >
+              🔑 {userApiKey ? "Custom Key" : "Key Pool"}
+            </button>
+
             {/* Theme Toggle (Dark: Blue & Black / Light: Green & White) */}
             <button
               className="theme-toggle-btn"
