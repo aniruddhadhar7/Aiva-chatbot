@@ -91,6 +91,7 @@ export default function App() {
 
   // Primary Navigation Mode: 'dashboard' | 'mcq' | 'viva' | 'chat'
   const [mode, setMode] = useState("dashboard");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Toast notification helper
@@ -487,8 +488,8 @@ export default function App() {
               {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
             </button>
 
-            {/* Top Navigation Tabs */}
-            <div className="nav-tabs">
+            {/* Desktop Navigation Tabs (Visible on Desktop/Tablet) */}
+            <div className="nav-tabs desktop-nav">
               <button
                 className={`tab-btn ${mode === "dashboard" ? "active" : ""}`}
                 onClick={() => setMode("dashboard")}
@@ -522,8 +523,91 @@ export default function App() {
                 <span className="tab-label">Chat</span>
               </button>
             </div>
+
+            {/* Mobile Hamburger Menu Button */}
+            <button
+              className={`mobile-menu-btn ${mobileMenuOpen ? "open" : ""}`}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Open Navigation Menu"
+            >
+              {mobileMenuOpen ? "✕ Close" : "☰ Menu"}
+            </button>
           </div>
         </header>
+
+        {/* Mobile Navigation Drawer Overlay */}
+        {mobileMenuOpen && (
+          <div className="mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)}>
+            <div className="mobile-drawer-content" onClick={(e) => e.stopPropagation()}>
+              <div className="drawer-header">
+                <div className="drawer-title">Switch Mode</div>
+                <button className="drawer-close-btn" onClick={() => setMobileMenuOpen(false)}>✕</button>
+              </div>
+
+              <div className="drawer-menu-list">
+                <button
+                  className={`drawer-item ${mode === "dashboard" ? "active" : ""}`}
+                  onClick={() => {
+                    setMode("dashboard");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <span className="drawer-icon">🏠</span>
+                  <div className="drawer-item-text">
+                    <strong>Home Dashboard</strong>
+                    <span>Return to placement hub & feature cards</span>
+                  </div>
+                  {mode === "dashboard" && <span className="drawer-active-badge">Active</span>}
+                </button>
+
+                <button
+                  className={`drawer-item ${mode === "mcq" ? "active" : ""}`}
+                  onClick={() => {
+                    switchMode("mcq");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <span className="drawer-icon">📝</span>
+                  <div className="drawer-item-text">
+                    <strong>Placement MCQ & OA</strong>
+                    <span>Output prediction & pseudo-code tests</span>
+                  </div>
+                  {mode === "mcq" && <span className="drawer-active-badge">Active</span>}
+                </button>
+
+                <button
+                  className={`drawer-item ${mode === "viva" ? "active" : ""}`}
+                  onClick={() => {
+                    switchMode("viva");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <span className="drawer-icon">🎓</span>
+                  <div className="drawer-item-text">
+                    <strong>Technical Viva Prep</strong>
+                    <span>1:1 placement questions & model answers</span>
+                  </div>
+                  {mode === "viva" && <span className="drawer-active-badge">Active</span>}
+                </button>
+
+                <button
+                  className={`drawer-item ${mode === "chat" ? "active" : ""}`}
+                  onClick={() => {
+                    setMode("chat");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <span className="drawer-icon">💬</span>
+                  <div className="drawer-item-text">
+                    <strong>AI Placement Mentor Chat</strong>
+                    <span>Instant doubt solving & concept explanations</span>
+                  </div>
+                  {mode === "chat" && <span className="drawer-active-badge">Active</span>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ================= MODE 0: Landing Dashboard ================= */}
         {mode === "dashboard" && (
