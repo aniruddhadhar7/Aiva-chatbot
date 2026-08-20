@@ -560,8 +560,17 @@ app.post("/api/viva/question", async (req, res) => {
 
     if (isMcq) {
       prompt = `You are an expert technical assessment creator for campus placement tests at companies like TCS NQT, Infosys, Accenture, Cognizant, Wipro, Amazon.
-Generate 1 high-yield, realistic technical MCQ / output-finding / pseudo-code question at ${difficulty} level.
+Generate 1 high-yield, realistic technical MCQ / output-finding / pseudo-code question at ${difficulty} level for: ${req.body.subTopic || topic}.
 Company Focus: ${company}
+
+CRITICAL CODE FORMATTING RULE:
+Whenever the question includes a code snippet, function, or pseudo-code, YOU MUST FORMAT IT AS A PROPER MULTI-LINE MARKDOWN CODE BLOCK (\`\`\`c, \`\`\`java, \`\`\`python, or \`\`\`cpp).
+- EACH statement MUST be on its own separate line (\n).
+- Format braces '{' and '}' on new lines with 4-space indentation.
+- NEVER write multiple semicolons or code statements on a single line.
+
+Example format:
+"What will be the output of the following C code snippet?\n\`\`\`c\n#include <stdio.h>\n\nint main() {\n    int a = 10, b = 20;\n    if (a = 5) {\n        b = 30;\n    }\n    printf(\"%d %d\", a, b);\n    return 0;\n}\n\`\`\`"
 
 CRITICAL ANTI-REPEAT INSTRUCTION:
 DO NOT generate any of the following recently asked questions:
@@ -570,7 +579,7 @@ ${recentListStr}
 Return ONLY valid JSON matching this schema:
 {
   "type": "mcq",
-  "question": "Question text with clear code block if output-based",
+  "question": "Question explanation text followed by \\n\\n\`\`\`language\\n// properly indented code here\\n\`\`\`",
   "options": [
     "A) Option A text",
     "B) Option B text",
@@ -578,7 +587,7 @@ Return ONLY valid JSON matching this schema:
     "D) Option D text"
   ],
   "correctOption": "A" | "B" | "C" | "D",
-  "explanation": "2-3 sentences explaining why the correct option is right and the trick behind it",
+  "explanation": "2-3 sentences explaining why the correct option is right and the step-by-step code execution",
   "topic": "${topic}",
   "difficulty": "${difficulty}",
   "companyTag": "${company === "All Top Companies" ? "TCS NQT / Infosys / Accenture" : company}",

@@ -68,13 +68,35 @@ const SUGGESTIONS_CATEGORIES = {
   ],
 };
 
-const API_BASE =
-  import.meta.env.VITE_API_URL ||
-  (typeof window !== "undefined" &&
-  window.location.hostname === "localhost" &&
-  window.location.port === "5173"
-    ? "http://localhost:5000/api"
-    : "/api");
+// Formatter ensuring code snippets in questions are properly formatted multi-line blocks
+const formatQuestionContent = (text) => {
+  if (!text) return "";
+  let content = String(text);
+
+  // If text already has properly formatted markdown code fences, return as is
+  if (content.includes("```")) {
+    return content;
+  }
+
+  // If code is written on a single line (e.g. "#include <stdio.h> int main() { int a = 5; if(a=5)... }")
+  const codeIndicators = ["#include", "int main", "void main", "public static void", "def ", "class "];
+  const hasCodeIndicator = codeIndicators.some((ind) => content.includes(ind));
+
+  if (hasCodeIndicator) {
+    const parts = content.split(/(?=\b(?:#include|int main|void main|public class|def |class ))/);
+    if (parts.length > 1) {
+      const intro = parts[0].trim();
+      const code = parts.slice(1).join("\n")
+        .replace(/;\s*/g, ";\n    ")
+        .replace(/\{\s*/g, "{\n    ")
+        .replace(/\s*\}/g, "\n}\n")
+        .trim();
+      return `${intro}\n\n\`\`\`c\n${code}\n\`\`\``;
+    }
+  }
+
+  return content;
+};
 
 export default function App() {
   // Theme State (Dark = Blue & Black / Light = Green & White)
@@ -861,7 +883,7 @@ export default function App() {
 
                   <div className="question-text markdown-render">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {vivaData.question}
+                      {formatQuestionContent(vivaData.question)}
                     </ReactMarkdown>
                   </div>
 
