@@ -5,7 +5,6 @@ import remarkGfm from "remark-gfm";
 import "./App.css";
 
 const VIVA_TOPICS = [
-  "Placement Technical MCQ & Pseudo-Code",
   "C Programming",
   "Java (Core & OOPs)",
   "C++ (OOPs & STL)",
@@ -15,6 +14,17 @@ const VIVA_TOPICS = [
   "Computer Networks",
   "Data Structures & Algorithms",
   "React & Full Stack (MERN)",
+];
+
+const MCQ_TOPICS = [
+  "All Placement MCQs",
+  "C Output & Pointer MCQs",
+  "Java Core & OOPs MCQs",
+  "C++ & STL MCQs",
+  "Python Scripting MCQs",
+  "DSA & Complexity MCQs",
+  "DBMS & SQL Queries MCQs",
+  "OS & Networks MCQs",
 ];
 
 const COMPANIES = [
@@ -79,7 +89,8 @@ export default function App() {
     showToast(`Switched to ${nextTheme === "dark" ? "Dark (Blue & Black)" : "Light (Green & White)"} Mode`, "info");
   };
 
-  const [mode, setMode] = useState("viva"); // 'viva' | 'chat'
+  // Primary Navigation Mode: 'mcq' | 'viva' | 'chat'
+  const [mode, setMode] = useState("mcq");
   const [toast, setToast] = useState(null);
 
   // Toast notification helper
@@ -92,7 +103,7 @@ export default function App() {
   const [messages, setMessages] = useState([
     {
       sender: "aiva",
-      text: "Hey there! I'm **Aiva**, your tech placement mentor. Ask me any programming or CS doubt, or jump into **Placement Viva & MCQs** to practice real company technical rounds!",
+      text: "Hey there! I'm **Aiva**, your tech placement mentor. Practice **MCQ Tests**, **Placement Viva**, or ask me any coding doubt in **AI Chat**!",
     },
   ]);
   const [chatInput, setChatInput] = useState("");
@@ -102,8 +113,8 @@ export default function App() {
   const [speakingMsgIdx, setSpeakingMsgIdx] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // Viva State
-  const [selectedTopic, setSelectedTopic] = useState(VIVA_TOPICS[0]);
+  // Practice State (Shared for Viva & MCQ)
+  const [selectedTopic, setSelectedTopic] = useState(MCQ_TOPICS[0]);
   const [selectedDifficulty, setSelectedDifficulty] = useState("Easy");
   const [selectedCompany, setSelectedCompany] = useState(COMPANIES[0]);
   const [vivaData, setVivaData] = useState(null);
@@ -290,9 +301,11 @@ export default function App() {
     ]);
   };
 
-  // Viva: Fetch new question (Anti-repeat shuffle with timer starting only on render)
-  const fetchNewQuestion = async (overrideTopic, overrideDifficulty, overrideCompany) => {
-    const topic = overrideTopic || selectedTopic;
+  // Fetch new question (Anti-repeat shuffle with timer starting only on render)
+  const fetchNewQuestion = async (overrideTopic, overrideDifficulty, overrideCompany, targetMode = mode) => {
+    const isMcqMode = targetMode === "mcq";
+    const defaultTopic = isMcqMode ? MCQ_TOPICS[0] : VIVA_TOPICS[0];
+    const topic = overrideTopic || selectedTopic || defaultTopic;
     const difficulty = overrideDifficulty || selectedDifficulty;
     const company = overrideCompany || selectedCompany;
 
@@ -307,7 +320,8 @@ export default function App() {
 
     try {
       const res = await axios.post(`${API_BASE}/viva/question`, {
-        topic,
+        topic: isMcqMode ? "Placement Technical MCQ & Pseudo-Code" : topic,
+        subTopic: topic,
         difficulty,
         company,
         recentQuestions: askedQuestions,
@@ -320,25 +334,25 @@ export default function App() {
         throw new Error("Invalid response format");
       }
     } catch (err) {
-      console.error("Viva question error:", err);
-      const isMcq = topic.includes("MCQ");
+      console.error("Question fetch error:", err);
+      const isMcq = isMcqMode;
       const fallbackQ = isMcq
-        ? "What is the output of `printf(\"%d\", 5 == 5 == 1);` in C?"
+        ? "What is the output of the following C code?\n```c\n#include <stdio.h>\nint main() {\n    int a = 10, b = 20;\n    if (a = 5)\n        b = 30;\n    printf(\"%d %d\", a, b);\n    return 0;\n}\n```"
         : `Explain core memory layout, key syntax, and practical placement interview scenarios in ${topic}.`;
       
       setVivaData({
         type: isMcq ? "mcq" : "viva",
         question: fallbackQ,
-        options: isMcq ? ["A) 1", "B) 0", "C) Compilation Error", "D) 5"] : null,
-        correctOption: "A",
-        explanation: "`5 == 5` evaluates to 1 (true). Then `1 == 1` evaluates to 1. Output is 1.",
-        topic,
+        options: isMcq ? ["A) 10 20", "B) 5 30", "C) 10 30", "D) Compilation Error"] : null,
+        correctOption: "B",
+        explanation: "`if (a = 5)` assigns 5 to `a`, which evaluates to truthy (non-zero), executing `b = 30`. Output is `5 30`.",
+        topic: isMcq ? "Placement Technical MCQ & Pseudo-Code" : topic,
         difficulty,
-        companyTag: company !== "All Top Companies" ? company : "TCS / Infosys / Accenture",
+        companyTag: company !== "All Top Companies" ? company : "TCS NQT / Infosys / Accenture",
         pyqFrequency: "Top 10 Essential Placement Question",
         expectedKeyPoints: [
-          "Operator associativity (left-to-right)",
-          "Boolean return value of relational operators in C"
+          "Assignment vs comparison operator",
+          "Conditional execution in C"
         ],
       });
       setAskedQuestions((prev) => [...prev, fallbackQ]);
@@ -353,9 +367,21 @@ export default function App() {
   // Auto-fetch question once on initial mount
   useEffect(() => {
     if (!vivaData && !vivaLoading) {
-      fetchNewQuestion();
+      fetchNewQuestion(MCQ_TOPICS[0], "Easy", COMPANIES[0], "mcq");
     }
   }, []);
+
+  // Handle Tab Switch
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    if (newMode === "mcq") {
+      setSelectedTopic(MCQ_TOPICS[0]);
+      fetchNewQuestion(MCQ_TOPICS[0], selectedDifficulty, selectedCompany, "mcq");
+    } else if (newMode === "viva") {
+      setSelectedTopic(VIVA_TOPICS[0]);
+      fetchNewQuestion(VIVA_TOPICS[0], selectedDifficulty, selectedCompany, "viva");
+    }
+  };
 
   // Handle MCQ option selection
   const handleSelectOption = (opt) => {
@@ -363,7 +389,7 @@ export default function App() {
     setUserAnswer(opt);
   };
 
-  // Viva: Submit candidate answer (Handles both MCQ and viva text)
+  // Submit candidate answer (Handles both MCQ and viva text)
   const submitAnswer = async (e) => {
     e?.preventDefault();
     const finalAnswer = (userAnswer || selectedOption || "").trim();
@@ -411,7 +437,7 @@ export default function App() {
         verdict: isMcq ? "Option Evaluated!" : "Strong Answer",
         feedback:
           isMcq
-            ? `Correct Option: ${vivaData.correctOption || "A"}. Great technical reasoning!`
+            ? `Correct Option: ${vivaData.correctOption || "B"}. Great technical reasoning!`
             : `Great attempt on this ${selectedTopic} question! You explained the foundation well.`,
         missedPoints: isMcq ? [] : ["Highlight specific memory/complexity parameters"],
         idealAnswer:
@@ -466,42 +492,49 @@ export default function App() {
               {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
             </button>
 
+            {/* 3 Dedicated Top-Level Modes */}
             <div className="nav-tabs">
               <button
-                className={`tab-btn ${mode === "viva" ? "active" : ""}`}
-                onClick={() => setMode("viva")}
+                className={`tab-btn ${mode === "mcq" ? "active" : ""}`}
+                onClick={() => switchMode("mcq")}
               >
-                🎓 Viva & MCQ
+                📝 MCQ & OA
+              </button>
+              <button
+                className={`tab-btn ${mode === "viva" ? "active" : ""}`}
+                onClick={() => switchMode("viva")}
+              >
+                🎓 Viva Prep
               </button>
               <button
                 className={`tab-btn ${mode === "chat" ? "active" : ""}`}
-                onClick={() => setMode("chat")}
+                onClick={() => switchMode("chat")}
               >
-                💬 Chat
+                💬 AI Chat
               </button>
             </div>
           </div>
         </header>
 
-        {/* ================= MODE 1: Placement Viva & MCQ Room ================= */}
-        {mode === "viva" && (
+        {/* ================= MODES: MCQ Test OR Viva Prep ================= */}
+        {(mode === "mcq" || mode === "viva") && (
           <div className="viva-container">
             {/* Top Bar: Controls & Filters */}
             <div className="viva-header-card">
               <div className="viva-controls">
                 <div className="control-group">
-                  <label>Category / Language</label>
+                  <label>{mode === "mcq" ? "MCQ Category" : "Viva Topic"}</label>
                   <select
                     value={selectedTopic}
                     onChange={(e) => {
                       const newTopic = e.target.value;
                       setSelectedTopic(newTopic);
-                      fetchNewQuestion(newTopic, selectedDifficulty, selectedCompany);
+                      fetchNewQuestion(newTopic, selectedDifficulty, selectedCompany, mode);
                     }}
                   >
-                    {VIVA_TOPICS.map((t) => (
+                    {(mode === "mcq" ? MCQ_TOPICS : VIVA_TOPICS).map((t) => (
                       <option key={t} value={t}>
-                        {t === "Placement Technical MCQ & Pseudo-Code" ? "📝 Technical MCQ & OA" : t}
+                        {t}
                       </option>
                     ))}
                   </select>
@@ -514,7 +547,7 @@ export default function App() {
                     onChange={(e) => {
                       const newComp = e.target.value;
                       setSelectedCompany(newComp);
-                      fetchNewQuestion(selectedTopic, selectedDifficulty, newComp);
+                      fetchNewQuestion(selectedTopic, selectedDifficulty, newComp, mode);
                     }}
                   >
                     {COMPANIES.map((c) => (
@@ -532,7 +565,7 @@ export default function App() {
                     onChange={(e) => {
                       const newDiff = e.target.value;
                       setSelectedDifficulty(newDiff);
-                      fetchNewQuestion(selectedTopic, newDiff, selectedCompany);
+                      fetchNewQuestion(selectedTopic, newDiff, selectedCompany, mode);
                     }}
                   >
                     <option value="Easy">🟢 Easy (Placement PYQs)</option>
@@ -543,7 +576,7 @@ export default function App() {
 
                 <button
                   className="viva-btn next-btn"
-                  onClick={() => fetchNewQuestion()}
+                  onClick={() => fetchNewQuestion(selectedTopic, selectedDifficulty, selectedCompany, mode)}
                   disabled={vivaLoading}
                 >
                   {vivaLoading ? "Shuffling..." : "🔀 Next Question"}
@@ -574,7 +607,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Viva Body Content */}
+            {/* Body Content */}
             <div className="viva-body">
               {/* Loading State */}
               {vivaLoading && (
@@ -584,7 +617,7 @@ export default function App() {
                     <div className="typing-dot"></div>
                     <div className="typing-dot"></div>
                   </div>
-                  <h3>Selecting placement {selectedTopic.includes("MCQ") ? "MCQ" : "viva"} question...</h3>
+                  <h3>Selecting placement {mode === "mcq" ? "MCQ" : "viva"} question...</h3>
                   <p>{selectedTopic} • {selectedCompany}</p>
                 </div>
               )}
@@ -621,7 +654,7 @@ export default function App() {
                         className={`tool-btn ${showHint ? "active" : ""}`}
                         onClick={() => setShowHint(!showHint)}
                       >
-                        💡 {showHint ? "Hide Key Points" : "Hints"}
+                        💡 {showHint ? "Hide Hints" : "Hints"}
                       </button>
                     </div>
                   </div>
@@ -645,13 +678,13 @@ export default function App() {
                 </div>
               )}
 
-              {/* Candidate Answer Input - Supports both MCQ Interactive Option Cards and Theoretical Text */}
+              {/* Answer Area */}
               {!vivaLoading && vivaData && !evaluation && (
                 <form onSubmit={submitAnswer} className="viva-answer-card">
                   {vivaData.options && vivaData.options.length > 0 ? (
-                    /* MCQ Options Selection View */
+                    /* MCQ Options Selection Grid */
                     <div className="mcq-options-container">
-                      <label className="mcq-header-lbl">Select Correct Option:</label>
+                      <label className="mcq-header-lbl">Click the Correct Option below:</label>
                       <div className="mcq-options-grid">
                         {vivaData.options.map((opt, idx) => {
                           const isSelected = selectedOption === opt || userAnswer === opt;
@@ -674,7 +707,7 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    /* Theoretical Viva Text Area */
+                    /* Viva Theoretical Answer Input */
                     <>
                       <div className="answer-header">
                         <label>Your Response (Type or Speak naturally)</label>
@@ -704,7 +737,7 @@ export default function App() {
                     )}
                     {vivaData.options && (
                       <span className="word-count">
-                        {selectedOption ? `Selected: ${selectedOption.substring(0, 2)}` : "Click an option above"}
+                        {selectedOption ? `Selected: ${selectedOption.substring(0, 2)}` : "Select an option to submit"}
                       </span>
                     )}
                     <button
@@ -718,7 +751,7 @@ export default function App() {
                 </form>
               )}
 
-              {/* Evaluation & Feedback Breakdown */}
+              {/* Evaluation & Feedback */}
               {!vivaLoading && evaluation && (
                 <div className="evaluation-card">
                   <div className="score-header">
@@ -774,7 +807,7 @@ export default function App() {
                   <div className="eval-actions">
                     <button
                       className="viva-btn next-btn"
-                      onClick={() => fetchNewQuestion()}
+                      onClick={() => fetchNewQuestion(selectedTopic, selectedDifficulty, selectedCompany, mode)}
                     >
                       Next Question ➔
                     </button>
@@ -785,7 +818,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= MODE 2: Standard AI Chat ================= */}
+        {/* ================= MODE 3: Standard AI Chat ================= */}
         {mode === "chat" && (
           <div className="chat-view">
             <div className="messages-area">
