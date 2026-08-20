@@ -60,6 +60,18 @@ const API_BASE =
     : "/api");
 
 export default function App() {
+  // Theme State (Dark = Blue & Black / Light = Green & White)
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("aiva_theme") || "dark";
+  });
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    localStorage.setItem("aiva_theme", nextTheme);
+    showToast(`Switched to ${nextTheme === "dark" ? "Dark (Blue & Black)" : "Light (Green & White)"} Mode`, "info");
+  };
+
   const [mode, setMode] = useState("viva"); // 'viva' | 'chat'
   const [toast, setToast] = useState(null);
 
@@ -73,7 +85,7 @@ export default function App() {
   const [messages, setMessages] = useState([
     {
       sender: "aiva",
-      text: "Hello! I'm **Aiva**. Ask me any technical doubt in **C, Java, C++, Python, DBMS, OS**, or practice interview questions in **Placement Viva** mode!",
+      text: "Hey there! I'm **Aiva**, your tech placement mentor. Ask me any programming or CS doubt, or jump into **Placement Viva** to practice real company technical rounds!",
     },
   ]);
   const [chatInput, setChatInput] = useState("");
@@ -137,7 +149,7 @@ export default function App() {
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      showToast("Speech recognition not supported in this browser.", "error");
+      showToast("Voice input is not supported in this browser.", "error");
       return;
     }
 
@@ -174,7 +186,7 @@ export default function App() {
   // Text to Speech
   const speakText = (text, idx) => {
     if (!("speechSynthesis" in window)) {
-      showToast("Text-to-speech is not supported in this browser.", "error");
+      showToast("Audio playback is not supported in this browser.", "error");
       return;
     }
 
@@ -250,7 +262,7 @@ export default function App() {
         ...prev,
         {
           sender: "aiva",
-          text: "⚠️ I encountered an issue reaching the server. Please verify your connection.",
+          text: "⚠️ I ran into a network hiccup reaching the server. Please check your connection and try again.",
         },
       ]);
       showToast("Server connection error.", "error");
@@ -265,7 +277,7 @@ export default function App() {
     setMessages([
       {
         sender: "aiva",
-        text: "Chat cleared! Ask any question about C, Java, C++, Python, or placement topics.",
+        text: "Chat cleared! Ask me anything about C, Java, C++, Python, or placement interview concepts.",
       },
     ]);
   };
@@ -370,10 +382,10 @@ export default function App() {
         score: 8,
         verdict: "Strong Answer",
         feedback:
-          `Great attempt on this ${selectedTopic} question! You answered the core concept correctly. For full marks in technical rounds, state the exact keywords and syntax edge cases.`,
+          `Great attempt on this ${selectedTopic} question! You explained the foundation well. For full marks in the actual interview, emphasize exact syntax keywords and edge cases.`,
         missedPoints: [
-          "State exact parameter types or memory behavior",
-          "Mention common interview trap/exception scenarios",
+          "Highlight specific memory/complexity parameters",
+          "Mention real-world implementation pitfalls",
         ],
         idealAnswer:
           `For ${selectedTopic} placement viva rounds: Start with a crisp 1-sentence definition, give the code syntax or working flow, and state 2 practical advantages.`,
@@ -389,7 +401,7 @@ export default function App() {
       : "0.0";
 
   return (
-    <div className="app-wrapper">
+    <div className="app-wrapper" data-theme={theme}>
       {/* Toast Notification Banner */}
       {toast && (
         <div className={`toast-notification toast-${toast.type}`}>
@@ -410,12 +422,22 @@ export default function App() {
                 <h1>Aiva</h1>
               </div>
               <span className="status-badge">
-                <span className="status-dot"></span> Online
+                <span className="status-dot"></span> Mentor Ready
               </span>
             </div>
           </div>
 
           <div className="header-actions">
+            {/* Theme Toggle (Dark: Blue & Black / Light: Green & White) */}
+            <button
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === "dark" ? "Light (Green & White)" : "Dark (Blue & Black)"} Mode`}
+              aria-label="Toggle Eye Comfort Theme"
+            >
+              {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+            </button>
+
             <div className="nav-tabs">
               <button
                 className={`tab-btn ${mode === "viva" ? "active" : ""}`}
@@ -440,7 +462,7 @@ export default function App() {
             <div className="viva-header-card">
               <div className="viva-controls">
                 <div className="control-group">
-                  <label>Subject</label>
+                  <label>Language / Topic</label>
                   <select
                     value={selectedTopic}
                     onChange={(e) => {
@@ -458,7 +480,7 @@ export default function App() {
                 </div>
 
                 <div className="control-group">
-                  <label>Company</label>
+                  <label>Target Company</label>
                   <select
                     value={selectedCompany}
                     onChange={(e) => {
@@ -485,7 +507,7 @@ export default function App() {
                       fetchNewQuestion(selectedTopic, newDiff, selectedCompany);
                     }}
                   >
-                    <option value="Easy">🟢 Easy (Placement PYQ)</option>
+                    <option value="Easy">🟢 Easy (Placement PYQs)</option>
                     <option value="Medium">🟡 Medium (Applied)</option>
                     <option value="Hard">🔴 Hard (Advanced)</option>
                   </select>
@@ -504,7 +526,7 @@ export default function App() {
               <div className="viva-analytics-pill">
                 <div className="stat-item">
                   <span className="stat-val">{vivaStats.attempted}</span>
-                  <span className="stat-lbl">Solved</span>
+                  <span className="stat-lbl">Questions</span>
                 </div>
                 <div className="stat-divider"></div>
                 <div className="stat-item">
@@ -512,7 +534,7 @@ export default function App() {
                     {avgScore}
                     <small>/10</small>
                   </span>
-                  <span className="stat-lbl">Avg</span>
+                  <span className="stat-lbl">Avg Score</span>
                 </div>
                 <div className="stat-divider"></div>
                 <div className="stat-item">
@@ -534,7 +556,7 @@ export default function App() {
                     <div className="typing-dot"></div>
                     <div className="typing-dot"></div>
                   </div>
-                  <h3>Fetching placement PYQ...</h3>
+                  <h3>Selecting high-yield placement PYQ...</h3>
                   <p>{selectedTopic} • {selectedCompany}</p>
                 </div>
               )}
@@ -563,7 +585,7 @@ export default function App() {
                       <button
                         className="tool-btn"
                         onClick={() => speakText(vivaData.question, "viva-q")}
-                        title="Listen to question"
+                        title="Listen to interviewer voice"
                       >
                         {speakingMsgIdx === "viva-q" ? "⏹️ Stop" : "🔊 Listen"}
                       </button>
@@ -571,7 +593,7 @@ export default function App() {
                         className={`tool-btn ${showHint ? "active" : ""}`}
                         onClick={() => setShowHint(!showHint)}
                       >
-                        💡 {showHint ? "Hide Key Points" : "Key Points"}
+                        💡 {showHint ? "Hide Key Points" : "Interviewer Hints"}
                       </button>
                     </div>
                   </div>
@@ -595,7 +617,7 @@ export default function App() {
               {!vivaLoading && vivaData && !evaluation && (
                 <form onSubmit={submitAnswer} className="viva-answer-card">
                   <div className="answer-header">
-                    <label>Your Viva Response</label>
+                    <label>Your Response (Type or Speak naturally)</label>
                     <button
                       type="button"
                       className={`voice-record-btn ${isListeningViva ? "listening" : ""}`}
@@ -607,7 +629,7 @@ export default function App() {
 
                   <textarea
                     rows="4"
-                    placeholder={`Explain your answer clearly as you would in a ${selectedCompany} technical interview...`}
+                    placeholder={`Explain your approach as you would to a ${selectedCompany} technical interviewer...`}
                     value={userAnswer}
                     onChange={(e) => setUserAnswer(e.target.value)}
                   />
@@ -621,7 +643,7 @@ export default function App() {
                       className="submit-answer-btn"
                       disabled={vivaLoading || !userAnswer.trim()}
                     >
-                      {vivaLoading ? "Evaluating..." : "Submit Answer →"}
+                      {vivaLoading ? "Evaluating..." : "Submit for Feedback →"}
                     </button>
                   </div>
                 </form>
@@ -654,7 +676,7 @@ export default function App() {
 
                   {evaluation.missedPoints?.length > 0 && (
                     <div className="eval-section missed-card">
-                      <strong>⚠️ Missed Points / Improvements:</strong>
+                      <strong>⚠️ Areas to Polish for Full Marks:</strong>
                       <ul>
                         {evaluation.missedPoints.map((pt, i) => (
                           <li key={i}>{pt}</li>
@@ -665,7 +687,7 @@ export default function App() {
 
                   <div className="eval-section ideal-card">
                     <div className="ideal-header">
-                      <strong>🏆 Ideal Placement Benchmark Answer:</strong>
+                      <strong>🏆 Benchmark Placement Model Answer:</strong>
                       <button
                         className="tool-btn copy-sm"
                         onClick={() => copyToClipboard(evaluation.idealAnswer)}
@@ -703,7 +725,7 @@ export default function App() {
                   <div className="welcome-icon">⚡</div>
                   <h2>Welcome to Aiva</h2>
                   <p>
-                    Ask any doubt in <strong>C, Java, C++, Python, DBMS, OS</strong> or practice placement questions with instant high-speed answers.
+                    Your personal mentor for <strong>C, Java, C++, Python, DBMS, OS</strong> and placement technical interview prep.
                   </p>
 
                   <div className="category-tabs">
@@ -804,7 +826,7 @@ export default function App() {
               >
                 <input
                   type="text"
-                  placeholder="Ask Aiva anything..."
+                  placeholder="Ask Aiva anything or type a coding question..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   disabled={chatLoading}
