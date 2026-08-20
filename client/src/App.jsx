@@ -51,6 +51,14 @@ const SUGGESTIONS_CATEGORIES = {
   ],
 };
 
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" &&
+  window.location.hostname === "localhost" &&
+  window.location.port === "5173"
+    ? "http://localhost:5000/api"
+    : "/api");
+
 export default function App() {
   const [mode, setMode] = useState("viva"); // 'viva' | 'chat'
   const [toast, setToast] = useState(null);
@@ -207,7 +215,7 @@ export default function App() {
     setChatLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/chat", {
+      const res = await fetch(`${API_BASE}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: text, history: messages }),
@@ -277,7 +285,7 @@ export default function App() {
     setShowHint(false);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/viva/question", {
+      const res = await axios.post(`${API_BASE}/viva/question`, {
         topic,
         difficulty,
         company,
@@ -331,7 +339,7 @@ export default function App() {
     setVivaLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/viva/evaluate", {
+      const res = await axios.post(`${API_BASE}/viva/evaluate`, {
         question: vivaData.question,
         userAnswer,
         topic: selectedTopic,

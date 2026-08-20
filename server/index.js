@@ -816,6 +816,10 @@ Evaluate constructively for campus recruitment standards. Return ONLY a JSON obj
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`Aiva high-availability PYQ backend running on http://localhost:${PORT}`)
-);
+if (!process.env.VERCEL) {
+  app.listen(PORT, () =>
+    console.log(`Aiva high-availability PYQ backend running on http://localhost:${PORT}`)
+  );
+}
+
+export default app;
