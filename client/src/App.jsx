@@ -89,8 +89,8 @@ export default function App() {
     showToast(`Switched to ${nextTheme === "dark" ? "Dark (Blue & Black)" : "Light (Green & White)"} Mode`, "info");
   };
 
-  // Primary Navigation Mode: 'mcq' | 'viva' | 'chat'
-  const [mode, setMode] = useState("mcq");
+  // Primary Navigation Mode: 'dashboard' | 'mcq' | 'viva' | 'chat'
+  const [mode, setMode] = useState("dashboard");
   const [toast, setToast] = useState(null);
 
   // Toast notification helper
@@ -364,22 +364,17 @@ export default function App() {
     }
   };
 
-  // Auto-fetch question once on initial mount
-  useEffect(() => {
-    if (!vivaData && !vivaLoading) {
-      fetchNewQuestion(MCQ_TOPICS[0], "Easy", COMPANIES[0], "mcq");
-    }
-  }, []);
-
-  // Handle Tab Switch
-  const switchMode = (newMode) => {
+  // Handle Mode Switch from Header or Dashboard Cards
+  const switchMode = (newMode, initialTopic) => {
     setMode(newMode);
     if (newMode === "mcq") {
-      setSelectedTopic(MCQ_TOPICS[0]);
-      fetchNewQuestion(MCQ_TOPICS[0], selectedDifficulty, selectedCompany, "mcq");
+      const topic = initialTopic || MCQ_TOPICS[0];
+      setSelectedTopic(topic);
+      fetchNewQuestion(topic, selectedDifficulty, selectedCompany, "mcq");
     } else if (newMode === "viva") {
-      setSelectedTopic(VIVA_TOPICS[0]);
-      fetchNewQuestion(VIVA_TOPICS[0], selectedDifficulty, selectedCompany, "viva");
+      const topic = initialTopic || VIVA_TOPICS[0];
+      setSelectedTopic(topic);
+      fetchNewQuestion(topic, selectedDifficulty, selectedCompany, "viva");
     }
   };
 
@@ -467,16 +462,16 @@ export default function App() {
       )}
 
       <div className="chat-container">
-        {/* Navigation Bar */}
+        {/* Navigation Bar - Fully Responsive */}
         <header className="chat-header">
-          <div className="header-info">
+          <div className="header-info" onClick={() => setMode("dashboard")} style={{ cursor: "pointer" }}>
             <div className="logo-avatar">A</div>
             <div className="header-text-block">
               <div className="title-row">
                 <h1>Aiva</h1>
               </div>
               <span className="status-badge">
-                <span className="status-dot"></span> Mentor Ready
+                <span className="status-dot"></span> Mentor Active
               </span>
             </div>
           </div>
@@ -492,29 +487,150 @@ export default function App() {
               {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
             </button>
 
-            {/* 3 Dedicated Top-Level Modes */}
+            {/* Top Navigation Tabs */}
             <div className="nav-tabs">
+              <button
+                className={`tab-btn ${mode === "dashboard" ? "active" : ""}`}
+                onClick={() => setMode("dashboard")}
+                title="Home Dashboard"
+              >
+                <span className="tab-icon">🏠</span>
+                <span className="tab-label">Home</span>
+              </button>
               <button
                 className={`tab-btn ${mode === "mcq" ? "active" : ""}`}
                 onClick={() => switchMode("mcq")}
+                title="Placement MCQ Tests"
               >
-                📝 MCQ & OA
+                <span className="tab-icon">📝</span>
+                <span className="tab-label">MCQ</span>
               </button>
               <button
                 className={`tab-btn ${mode === "viva" ? "active" : ""}`}
                 onClick={() => switchMode("viva")}
+                title="Technical Viva Prep"
               >
-                🎓 Viva Prep
+                <span className="tab-icon">🎓</span>
+                <span className="tab-label">Viva</span>
               </button>
               <button
                 className={`tab-btn ${mode === "chat" ? "active" : ""}`}
-                onClick={() => switchMode("chat")}
+                onClick={() => setMode("chat")}
+                title="AI Placement Mentor Chat"
               >
-                💬 AI Chat
+                <span className="tab-icon">💬</span>
+                <span className="tab-label">Chat</span>
               </button>
             </div>
           </div>
         </header>
+
+        {/* ================= MODE 0: Landing Dashboard ================= */}
+        {mode === "dashboard" && (
+          <div className="dashboard-container">
+            {/* Hero Banner Card */}
+            <div className="dashboard-hero">
+              <div className="hero-pill">⚡ Your 24/7 Tech Placement Mentor</div>
+              <h2>Ace Campus Placements with Aiva</h2>
+              <p>
+                Targeted practice with real technical recruitment questions from <strong>TCS, Infosys, Accenture, Cognizant, Wipro, and Amazon</strong>. Select your prep mode below:
+              </p>
+            </div>
+
+            {/* 3 Main Action Cards */}
+            <div className="dashboard-cards-grid">
+              {/* Card 1: MCQ & OA Test */}
+              <div
+                className="dashboard-card mcq-card"
+                onClick={() => switchMode("mcq")}
+              >
+                <div className="card-top-icon">📝</div>
+                <div className="card-badge">Online Assessment</div>
+                <h3>Technical MCQs & Output Testing</h3>
+                <p>
+                  Practice output-finding, pointer mechanics, DSA time complexity, and pseudo-code with 4-choice interactive options & instant scoring.
+                </p>
+                <div className="card-tags">
+                  <span>C / C++</span>
+                  <span>Java</span>
+                  <span>Python</span>
+                  <span>DSA</span>
+                </div>
+                <button className="card-action-btn mcq-btn">
+                  Start MCQ Test ➔
+                </button>
+              </div>
+
+              {/* Card 2: 1:1 Technical Viva */}
+              <div
+                className="dashboard-card viva-card"
+                onClick={() => switchMode("viva")}
+              >
+                <div className="card-top-icon">🎓</div>
+                <div className="card-badge">Interview Round</div>
+                <h3>Placement Viva & Technical 1:1</h3>
+                <p>
+                  Face realistic interview questions, type or speak your response using voice input, and get graded feedback with full model answers.
+                </p>
+                <div className="card-tags">
+                  <span>OOPs</span>
+                  <span>DBMS & SQL</span>
+                  <span>OS</span>
+                  <span>Networks</span>
+                </div>
+                <button className="card-action-btn viva-btn">
+                  Start Viva Prep ➔
+                </button>
+              </div>
+
+              {/* Card 3: AI Chat & Doubt Solver */}
+              <div
+                className="dashboard-card chat-card"
+                onClick={() => setMode("chat")}
+              >
+                <div className="card-top-icon">💬</div>
+                <div className="card-badge">Instant Help</div>
+                <h3>AI Mentor & Code Explainer</h3>
+                <p>
+                  Ask any programming query, debug tricky syntax, review algorithmic approaches, or clear conceptual doubts in real-time.
+                </p>
+                <div className="card-tags">
+                  <span>Code Helper</span>
+                  <span>Concept Explainer</span>
+                  <span>Fast AI</span>
+                </div>
+                <button className="card-action-btn chat-btn">
+                  Open AI Chat ➔
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="dashboard-highlights">
+              <div className="highlight-item">
+                <span className="hl-icon">🏢</span>
+                <div>
+                  <strong>Top 500+ Company PYQs</strong>
+                  <span>TCS, Infosys, Accenture, Amazon</span>
+                </div>
+              </div>
+              <div className="highlight-item">
+                <span className="hl-icon">🎙️</span>
+                <div>
+                  <strong>Voice Recognition & TTS</strong>
+                  <span>Speak answers and listen to questions</span>
+                </div>
+              </div>
+              <div className="highlight-item">
+                <span className="hl-icon">⏱️</span>
+                <div>
+                  <strong>Live Timer & Analytics</strong>
+                  <span>Track speed and performance history</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ================= MODES: MCQ Test OR Viva Prep ================= */}
         {(mode === "mcq" || mode === "viva") && (
