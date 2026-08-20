@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const apiKey = process.env.GEMINI_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || "";
 if (!apiKey) {
   console.warn("WARNING: GEMINI_API_KEY is not set in environment variables.");
 }
@@ -49,6 +49,9 @@ const cleanJson = (text) => {
 
 // Robust model caller with automatic failover
 async function callGeminiWithFailover(apiCallFn) {
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY not configured on server");
+  }
   let lastError = null;
   for (const modelName of CANDIDATE_MODELS) {
     try {
@@ -67,7 +70,7 @@ async function callGeminiWithFailover(apiCallFn) {
 const FALLBACK_QUESTIONS = {
   "Placement Technical MCQ & Pseudo-Code": [
     {
-      question: "What will be the output of the following C code snippet?\n```c\n#include <stdio.h>\nint main() {\n    int a = 10, b = 20;\n    if (a = 5)\n        b = 30;\n    printf(\"%d %d\", a, b);\n    return 0;\n}\n```",
+      question: "What will be the output of the following C code snippet?\n```c\n#include <stdio.h>\n\nint main() {\n    int a = 10, b = 20;\n    if (a = 5) {\n        b = 30;\n    }\n    printf(\"%d %d\", a, b);\n    return 0;\n}\n```",
       options: [
         "A) 10 20",
         "B) 5 30",
@@ -466,20 +469,24 @@ function fallbackEvaluation(question, userAnswer, topic, difficulty) {
   };
 }
 
+// Universal Router (Mounted on both /api and / so it works seamlessly in all environments)
+const router = express.Router();
+
 // 1. Health Check
-app.get("/api/health", (req, res) => {
+router.get("/health", (req, res) => {
   res.json({
     status: "ok",
-    server: "Aiva High-Speed PYQ Placement Engine (Anti-Repeat Dynamic Shuffle)",
+    server: "Aiva High-Speed PYQ Placement Engine",
     models: CANDIDATE_MODELS,
+    hasApiKey: Boolean(apiKey),
     time: new Date().toISOString(),
   });
 });
 
 // 2. Chat Route (Streaming with automatic model failover)
-app.post("/api/chat", async (req, res) => {
+router.post("/chat", async (req, res) => {
   try {
-    const { prompt, history } = req.body;
+    const { prompt, history } = req.body || {};
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return res.status(400).json({ error: "Valid text prompt is required" });
     }
@@ -503,45 +510,47 @@ app.post("/api/chat", async (req, res) => {
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
 
     let streamSuccess = false;
-    for (const modelName of CANDIDATE_MODELS) {
-      try {
-        const stream = await ai.models.generateContentStream({
-          model: modelName,
-          contents: contents,
-          config: {
-            maxOutputTokens: 1024,
-            systemInstruction:
-              "You are Aiva, an intelligent, helpful, and ultra-fast AI assistant & placement mentor. Provide concise, clear, and visually well-formatted responses using Markdown, code snippets, and structured bullet points when helpful.",
-          },
-        });
+    if (apiKey) {
+      for (const modelName of CANDIDATE_MODELS) {
+        try {
+          const stream = await ai.models.generateContentStream({
+            model: modelName,
+            contents: contents,
+            config: {
+              maxOutputTokens: 1024,
+              systemInstruction:
+                "You are Aiva, an intelligent, helpful, and ultra-fast AI assistant & placement mentor. Provide concise, clear, and visually well-formatted responses using Markdown, code snippets, and structured bullet points when helpful.",
+            },
+          });
 
-        for await (const chunk of stream) {
-          if (chunk.text) res.write(chunk.text);
+          for await (const chunk of stream) {
+            if (chunk.text) res.write(chunk.text);
+          }
+          streamSuccess = true;
+          break;
+        } catch (err) {
+          console.warn(`[Chat Stream Failover] Model ${modelName} failed: ${err.message}`);
         }
-        streamSuccess = true;
-        break;
-      } catch (err) {
-        console.warn(`[Chat Stream Failover] Model ${modelName} failed: ${err.message}`);
       }
     }
 
     if (!streamSuccess) {
-      res.write("I am ready to help with your technical prep! Feel free to ask any question regarding C, C++, Java, Python, DBMS, OS, or placement interview topics.");
+      res.write("Hello! I am Aiva, your tech placement mentor. Ask me any programming or CS doubt, or test your skills in the **MCQ & Viva** sections!");
     }
 
     res.end();
   } catch (error) {
-    console.error("Gemini API Error Detail:", error);
+    console.error("Chat Error Detail:", error);
     if (!res.headersSent) {
-      res.status(500).json({ error: error.message || "Failed to process request" });
-    } else {
-      res.end();
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.write("Hello! I am Aiva, your tech placement mentor. Feel free to ask any question regarding C, C++, Java, Python, DBMS, OS, or placement interview topics.");
     }
+    res.end();
   }
 });
 
 // 3. Viva: Generate Placement PYQ Question (MCQ & Theoretical Support)
-app.post("/api/viva/question", async (req, res) => {
+router.post("/viva/question", async (req, res) => {
   const {
     topic = "C Programming",
     difficulty = "Easy",
@@ -549,7 +558,7 @@ app.post("/api/viva/question", async (req, res) => {
     recentQuestions = []
   } = req.body || {};
 
-  const isMcq = topic === "Placement Technical MCQ & Pseudo-Code";
+  const isMcq = topic.includes("MCQ") || (req.body.subTopic && req.body.subTopic.includes("MCQ"));
 
   try {
     const recentListStr = Array.isArray(recentQuestions) && recentQuestions.length > 0
@@ -565,12 +574,12 @@ Company Focus: ${company}
 
 CRITICAL CODE FORMATTING RULE:
 Whenever the question includes a code snippet, function, or pseudo-code, YOU MUST FORMAT IT AS A PROPER MULTI-LINE MARKDOWN CODE BLOCK (\`\`\`c, \`\`\`java, \`\`\`python, or \`\`\`cpp).
-- EACH statement MUST be on its own separate line (\n).
+- EACH statement MUST be on its own separate line (\\n).
 - Format braces '{' and '}' on new lines with 4-space indentation.
 - NEVER write multiple semicolons or code statements on a single line.
 
 Example format:
-"What will be the output of the following C code snippet?\n\`\`\`c\n#include <stdio.h>\n\nint main() {\n    int a = 10, b = 20;\n    if (a = 5) {\n        b = 30;\n    }\n    printf(\"%d %d\", a, b);\n    return 0;\n}\n\`\`\`"
+"What will be the output of the following C code snippet?\\n\`\`\`c\\n#include <stdio.h>\\n\\nint main() {\\n    int a = 10, b = 20;\\n    if (a = 5) {\\n        b = 30;\\n    }\\n    printf(\\"%d %d\\", a, b);\\n    return 0;\\n}\\n\`\`\`"
 
 CRITICAL ANTI-REPEAT INSTRUCTION:
 DO NOT generate any of the following recently asked questions:
@@ -623,7 +632,7 @@ Return ONLY valid JSON matching this schema:
         contents: prompt,
         config: {
           responseMimeType: "application/json",
-          maxOutputTokens: 480,
+          maxOutputTokens: 550,
         },
       });
       const parsed = cleanJson(response.text);
@@ -635,9 +644,10 @@ Return ONLY valid JSON matching this schema:
 
     res.json(data);
   } catch (error) {
-    console.warn("Viva Question AI generation failed, using curated non-repeating PYQ bank fallback:", error.message);
+    console.warn("Viva Question AI generation fallback:", error.message);
     
-    const topicQuestions = FALLBACK_QUESTIONS[topic] || FALLBACK_QUESTIONS["Placement Technical MCQ & Pseudo-Code"];
+    const poolKey = isMcq ? "Placement Technical MCQ & Pseudo-Code" : (FALLBACK_QUESTIONS[topic] ? topic : "C Programming");
+    const topicQuestions = FALLBACK_QUESTIONS[poolKey] || FALLBACK_QUESTIONS["Placement Technical MCQ & Pseudo-Code"];
     
     const askedSet = new Set((recentQuestions || []).map(q => (q || "").toLowerCase().trim()));
     const unaskedQuestions = topicQuestions.filter(q => !askedSet.has(q.question.toLowerCase().trim()));
@@ -662,7 +672,7 @@ Return ONLY valid JSON matching this schema:
 });
 
 // 4. Viva: Evaluate Candidate Answer (Handles both MCQ & Theoretical Viva)
-app.post("/api/viva/evaluate", async (req, res) => {
+router.post("/viva/evaluate", async (req, res) => {
   const {
     question,
     userAnswer,
@@ -682,7 +692,6 @@ app.post("/api/viva/evaluate", async (req, res) => {
     const userClean = userAnswer.trim().toUpperCase();
     const correctClean = correctOption.trim().toUpperCase();
     
-    // Check if user answer starts with or matches correct option letter (A, B, C, D)
     const isCorrect = userClean.startsWith(correctClean) || userClean.includes(`OPTION ${correctClean}`) || userClean.includes(`(${correctClean})`);
 
     return res.json({
@@ -729,11 +738,15 @@ Evaluate constructively for campus recruitment standards. Return ONLY a JSON obj
 
     res.json(data);
   } catch (error) {
-    console.warn("Viva Evaluation AI call failed, using heuristic evaluation fallback:", error.message);
+    console.warn("Viva Evaluation fallback:", error.message);
     const fallbackData = fallbackEvaluation(question, userAnswer, topic, difficulty);
     res.json(fallbackData);
   }
 });
+
+// Mount router on both /api and / for absolute reliability
+app.use("/api", router);
+app.use("/", router);
 
 const PORT = process.env.PORT || 5000;
 if (!process.env.VERCEL) {
