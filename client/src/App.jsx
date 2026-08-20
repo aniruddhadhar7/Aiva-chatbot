@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import "./App.css";
 
 const VIVA_TOPICS = [
+  "Placement Technical MCQ & Pseudo-Code",
   "C Programming",
   "Java (Core & OOPs)",
   "C++ (OOPs & STL)",
@@ -25,6 +26,12 @@ const COMPANIES = [
 ];
 
 const SUGGESTIONS_CATEGORIES = {
+  "MCQ & OA Prep": [
+    "Predict output of C pointer increment question",
+    "Time complexity of balanced BST vs Hash Table",
+    "Java String pool and reference comparison MCQ",
+    "Python list mutability and assignment output",
+  ],
   "C & C++ PYQs": [
     "Difference between malloc() and calloc() with syntax",
     "Explain virtual functions and vtable in C++",
@@ -85,12 +92,12 @@ export default function App() {
   const [messages, setMessages] = useState([
     {
       sender: "aiva",
-      text: "Hey there! I'm **Aiva**, your tech placement mentor. Ask me any programming or CS doubt, or jump into **Placement Viva** to practice real company technical rounds!",
+      text: "Hey there! I'm **Aiva**, your tech placement mentor. Ask me any programming or CS doubt, or jump into **Placement Viva & MCQs** to practice real company technical rounds!",
     },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const [activeCategory, setActiveCategory] = useState("C & C++ PYQs");
+  const [activeCategory, setActiveCategory] = useState("MCQ & OA Prep");
   const [isListeningChat, setIsListeningChat] = useState(false);
   const [speakingMsgIdx, setSpeakingMsgIdx] = useState(null);
   const messagesEndRef = useRef(null);
@@ -101,6 +108,7 @@ export default function App() {
   const [selectedCompany, setSelectedCompany] = useState(COMPANIES[0]);
   const [vivaData, setVivaData] = useState(null);
   const [userAnswer, setUserAnswer] = useState("");
+  const [selectedOption, setSelectedOption] = useState(null);
   const [evaluation, setEvaluation] = useState(null);
   const [vivaLoading, setVivaLoading] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -294,6 +302,7 @@ export default function App() {
     setVivaLoading(true);
     setEvaluation(null);
     setUserAnswer("");
+    setSelectedOption(null);
     setShowHint(false);
 
     try {
@@ -312,17 +321,24 @@ export default function App() {
       }
     } catch (err) {
       console.error("Viva question error:", err);
-      const fallbackQ = `Explain core memory layout, key syntax, and practical placement interview scenarios in ${topic}.`;
+      const isMcq = topic.includes("MCQ");
+      const fallbackQ = isMcq
+        ? "What is the output of `printf(\"%d\", 5 == 5 == 1);` in C?"
+        : `Explain core memory layout, key syntax, and practical placement interview scenarios in ${topic}.`;
+      
       setVivaData({
+        type: isMcq ? "mcq" : "viva",
         question: fallbackQ,
+        options: isMcq ? ["A) 1", "B) 0", "C) Compilation Error", "D) 5"] : null,
+        correctOption: "A",
+        explanation: "`5 == 5` evaluates to 1 (true). Then `1 == 1` evaluates to 1. Output is 1.",
         topic,
         difficulty,
         companyTag: company !== "All Top Companies" ? company : "TCS / Infosys / Accenture",
-        pyqFrequency: "Top 10 Essential Viva Question",
+        pyqFrequency: "Top 10 Essential Placement Question",
         expectedKeyPoints: [
-          "Core definition and exact syntax",
-          "Working mechanism and memory layout",
-          "Practical use case or trade-offs",
+          "Operator associativity (left-to-right)",
+          "Boolean return value of relational operators in C"
         ],
       });
       setAskedQuestions((prev) => [...prev, fallbackQ]);
@@ -341,21 +357,33 @@ export default function App() {
     }
   }, []);
 
-  // Viva: Submit candidate answer
+  // Handle MCQ option selection
+  const handleSelectOption = (opt) => {
+    setSelectedOption(opt);
+    setUserAnswer(opt);
+  };
+
+  // Viva: Submit candidate answer (Handles both MCQ and viva text)
   const submitAnswer = async (e) => {
     e?.preventDefault();
-    if (!userAnswer.trim() || vivaLoading || !vivaData) return;
+    const finalAnswer = (userAnswer || selectedOption || "").trim();
+    if (!finalAnswer || vivaLoading || !vivaData) return;
 
     // Stop timer upon submission
     setTimerActive(false);
     setVivaLoading(true);
 
+    const isMcq = Boolean(vivaData.options && vivaData.options.length > 0);
+
     try {
       const res = await axios.post(`${API_BASE}/viva/evaluate`, {
         question: vivaData.question,
-        userAnswer,
+        userAnswer: finalAnswer,
         topic: selectedTopic,
         difficulty: selectedDifficulty,
+        isMcq,
+        correctOption: vivaData.correctOption,
+        explanation: vivaData.explanation
       });
 
       setEvaluation(res.data);
@@ -375,20 +403,20 @@ export default function App() {
         }));
       }
 
-      showToast(`Score: ${res.data.score}/10`, "success");
+      showToast(`Score: ${res.data.score}/10`, res.data.score >= 8 ? "success" : "info");
     } catch {
       showToast("Evaluation generated.", "info");
       setEvaluation({
-        score: 8,
-        verdict: "Strong Answer",
+        score: isMcq ? 10 : 8,
+        verdict: isMcq ? "Option Evaluated!" : "Strong Answer",
         feedback:
-          `Great attempt on this ${selectedTopic} question! You explained the foundation well. For full marks in the actual interview, emphasize exact syntax keywords and edge cases.`,
-        missedPoints: [
-          "Highlight specific memory/complexity parameters",
-          "Mention real-world implementation pitfalls",
-        ],
+          isMcq
+            ? `Correct Option: ${vivaData.correctOption || "A"}. Great technical reasoning!`
+            : `Great attempt on this ${selectedTopic} question! You explained the foundation well.`,
+        missedPoints: isMcq ? [] : ["Highlight specific memory/complexity parameters"],
         idealAnswer:
-          `For ${selectedTopic} placement viva rounds: Start with a crisp 1-sentence definition, give the code syntax or working flow, and state 2 practical advantages.`,
+          vivaData.explanation ||
+          `For ${selectedTopic}: State a crisp 1-sentence definition, syntax flow, and 2 practical advantages.`,
       });
     } finally {
       setVivaLoading(false);
@@ -443,7 +471,7 @@ export default function App() {
                 className={`tab-btn ${mode === "viva" ? "active" : ""}`}
                 onClick={() => setMode("viva")}
               >
-                🎓 Viva (PYQ)
+                🎓 Viva & MCQ
               </button>
               <button
                 className={`tab-btn ${mode === "chat" ? "active" : ""}`}
@@ -455,14 +483,14 @@ export default function App() {
           </div>
         </header>
 
-        {/* ================= MODE 1: Placement Viva Room ================= */}
+        {/* ================= MODE 1: Placement Viva & MCQ Room ================= */}
         {mode === "viva" && (
           <div className="viva-container">
             {/* Top Bar: Controls & Filters */}
             <div className="viva-header-card">
               <div className="viva-controls">
                 <div className="control-group">
-                  <label>Language / Topic</label>
+                  <label>Category / Language</label>
                   <select
                     value={selectedTopic}
                     onChange={(e) => {
@@ -473,7 +501,7 @@ export default function App() {
                   >
                     {VIVA_TOPICS.map((t) => (
                       <option key={t} value={t}>
-                        {t}
+                        {t === "Placement Technical MCQ & Pseudo-Code" ? "📝 Technical MCQ & OA" : t}
                       </option>
                     ))}
                   </select>
@@ -518,7 +546,7 @@ export default function App() {
                   onClick={() => fetchNewQuestion()}
                   disabled={vivaLoading}
                 >
-                  {vivaLoading ? "Shuffling..." : "🔀 Next PYQ"}
+                  {vivaLoading ? "Shuffling..." : "🔀 Next Question"}
                 </button>
               </div>
 
@@ -526,7 +554,7 @@ export default function App() {
               <div className="viva-analytics-pill">
                 <div className="stat-item">
                   <span className="stat-val">{vivaStats.attempted}</span>
-                  <span className="stat-lbl">Questions</span>
+                  <span className="stat-lbl">Solved</span>
                 </div>
                 <div className="stat-divider"></div>
                 <div className="stat-item">
@@ -556,7 +584,7 @@ export default function App() {
                     <div className="typing-dot"></div>
                     <div className="typing-dot"></div>
                   </div>
-                  <h3>Selecting high-yield placement PYQ...</h3>
+                  <h3>Selecting placement {selectedTopic.includes("MCQ") ? "MCQ" : "viva"} question...</h3>
                   <p>{selectedTopic} • {selectedCompany}</p>
                 </div>
               )}
@@ -567,7 +595,7 @@ export default function App() {
                   <div className="viva-question-top">
                     <div className="viva-badges">
                       <span className="viva-tag">
-                        📚 {vivaData.topic}
+                        {vivaData.options ? "📝 MCQ" : "📚 Viva"} • {vivaData.topic}
                       </span>
                       {vivaData.companyTag && (
                         <span className="company-badge">
@@ -585,7 +613,7 @@ export default function App() {
                       <button
                         className="tool-btn"
                         onClick={() => speakText(vivaData.question, "viva-q")}
-                        title="Listen to interviewer voice"
+                        title="Listen to question"
                       >
                         {speakingMsgIdx === "viva-q" ? "⏹️ Stop" : "🔊 Listen"}
                       </button>
@@ -593,16 +621,20 @@ export default function App() {
                         className={`tool-btn ${showHint ? "active" : ""}`}
                         onClick={() => setShowHint(!showHint)}
                       >
-                        💡 {showHint ? "Hide Key Points" : "Interviewer Hints"}
+                        💡 {showHint ? "Hide Key Points" : "Hints"}
                       </button>
                     </div>
                   </div>
 
-                  <h3 className="question-text">{vivaData.question}</h3>
+                  <div className="question-text markdown-render">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {vivaData.question}
+                    </ReactMarkdown>
+                  </div>
 
                   {showHint && vivaData.expectedKeyPoints?.length > 0 && (
                     <div className="hint-card">
-                      <strong>🔍 Interviewer Expected Key Concepts:</strong>
+                      <strong>🔍 Key Concepts Tested:</strong>
                       <ul>
                         {vivaData.expectedKeyPoints.map((pt, i) => (
                           <li key={i}>{pt}</li>
@@ -613,37 +645,74 @@ export default function App() {
                 </div>
               )}
 
-              {/* Candidate Answer Input */}
+              {/* Candidate Answer Input - Supports both MCQ Interactive Option Cards and Theoretical Text */}
               {!vivaLoading && vivaData && !evaluation && (
                 <form onSubmit={submitAnswer} className="viva-answer-card">
-                  <div className="answer-header">
-                    <label>Your Response (Type or Speak naturally)</label>
-                    <button
-                      type="button"
-                      className={`voice-record-btn ${isListeningViva ? "listening" : ""}`}
-                      onClick={() => startSpeechRecognition("viva")}
-                    >
-                      {isListeningViva ? "🔴 Listening..." : "🎙️ Speak Answer"}
-                    </button>
-                  </div>
+                  {vivaData.options && vivaData.options.length > 0 ? (
+                    /* MCQ Options Selection View */
+                    <div className="mcq-options-container">
+                      <label className="mcq-header-lbl">Select Correct Option:</label>
+                      <div className="mcq-options-grid">
+                        {vivaData.options.map((opt, idx) => {
+                          const isSelected = selectedOption === opt || userAnswer === opt;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              className={`mcq-option-card ${isSelected ? "selected" : ""}`}
+                              onClick={() => handleSelectOption(opt)}
+                            >
+                              <span className="opt-letter">
+                                {opt.substring(0, 2).replace(")", "")}
+                              </span>
+                              <span className="opt-text">
+                                {opt.substring(2).replace(/^\)\s*/, "").trim() || opt}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Theoretical Viva Text Area */
+                    <>
+                      <div className="answer-header">
+                        <label>Your Response (Type or Speak naturally)</label>
+                        <button
+                          type="button"
+                          className={`voice-record-btn ${isListeningViva ? "listening" : ""}`}
+                          onClick={() => startSpeechRecognition("viva")}
+                        >
+                          {isListeningViva ? "🔴 Listening..." : "🎙️ Speak Answer"}
+                        </button>
+                      </div>
 
-                  <textarea
-                    rows="4"
-                    placeholder={`Explain your approach as you would to a ${selectedCompany} technical interviewer...`}
-                    value={userAnswer}
-                    onChange={(e) => setUserAnswer(e.target.value)}
-                  />
+                      <textarea
+                        rows="4"
+                        placeholder={`Explain your approach as you would to a ${selectedCompany} technical interviewer...`}
+                        value={userAnswer}
+                        onChange={(e) => setUserAnswer(e.target.value)}
+                      />
+                    </>
+                  )}
 
                   <div className="answer-footer">
-                    <span className="word-count">
-                      {userAnswer.trim().split(/\s+/).filter(Boolean).length} words
-                    </span>
+                    {!vivaData.options && (
+                      <span className="word-count">
+                        {userAnswer.trim().split(/\s+/).filter(Boolean).length} words
+                      </span>
+                    )}
+                    {vivaData.options && (
+                      <span className="word-count">
+                        {selectedOption ? `Selected: ${selectedOption.substring(0, 2)}` : "Click an option above"}
+                      </span>
+                    )}
                     <button
                       type="submit"
                       className="submit-answer-btn"
-                      disabled={vivaLoading || !userAnswer.trim()}
+                      disabled={vivaLoading || (!userAnswer.trim() && !selectedOption)}
                     >
-                      {vivaLoading ? "Evaluating..." : "Submit for Feedback →"}
+                      {vivaLoading ? "Evaluating..." : "Submit Answer →"}
                     </button>
                   </div>
                 </form>
@@ -676,7 +745,7 @@ export default function App() {
 
                   {evaluation.missedPoints?.length > 0 && (
                     <div className="eval-section missed-card">
-                      <strong>⚠️ Areas to Polish for Full Marks:</strong>
+                      <strong>⚠️ Areas to Note / Missed Points:</strong>
                       <ul>
                         {evaluation.missedPoints.map((pt, i) => (
                           <li key={i}>{pt}</li>
@@ -687,12 +756,12 @@ export default function App() {
 
                   <div className="eval-section ideal-card">
                     <div className="ideal-header">
-                      <strong>🏆 Benchmark Placement Model Answer:</strong>
+                      <strong>🏆 {vivaData?.options ? "Detailed Explanation & Correct Answer:" : "Benchmark Placement Model Answer:"}</strong>
                       <button
                         className="tool-btn copy-sm"
                         onClick={() => copyToClipboard(evaluation.idealAnswer)}
                       >
-                        📋 Copy Model Answer
+                        📋 Copy Answer
                       </button>
                     </div>
                     <div className="ideal-content">
@@ -725,7 +794,7 @@ export default function App() {
                   <div className="welcome-icon">⚡</div>
                   <h2>Welcome to Aiva</h2>
                   <p>
-                    Your personal mentor for <strong>C, Java, C++, Python, DBMS, OS</strong> and placement technical interview prep.
+                    Your personal mentor for <strong>MCQ assessments, C, Java, C++, Python, DBMS, OS</strong> and placement technical interview prep.
                   </p>
 
                   <div className="category-tabs">
@@ -826,7 +895,7 @@ export default function App() {
               >
                 <input
                   type="text"
-                  placeholder="Ask Aiva anything or type a coding question..."
+                  placeholder="Ask Aiva anything or type a coding/MCQ question..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   disabled={chatLoading}

@@ -65,6 +65,104 @@ async function callGeminiWithFailover(apiCallFn) {
 
 // Extensive, Diverse, High-Yield Campus Placement PYQ Question Bank (No-Repeat Shuffle Pool)
 const FALLBACK_QUESTIONS = {
+  "Placement Technical MCQ & Pseudo-Code": [
+    {
+      question: "What will be the output of the following C code snippet?\n```c\n#include <stdio.h>\nint main() {\n    int a = 10, b = 20;\n    if (a = 5)\n        b = 30;\n    printf(\"%d %d\", a, b);\n    return 0;\n}\n```",
+      options: [
+        "A) 10 20",
+        "B) 5 30",
+        "C) 10 30",
+        "D) Compilation Error"
+      ],
+      correctOption: "B",
+      explanation: "In the `if (a = 5)` statement, it is an assignment operator (`=`), not a comparison (`==`). The value 5 is assigned to `a`, which evaluates to truthy (non-zero). Hence, the if block executes, setting `b = 30`. Output is `5 30`.",
+      topic: "Placement Technical MCQ & Pseudo-Code",
+      difficulty: "Easy",
+      companyTag: "TCS NQT / Infosys",
+      pyqFrequency: "Asked in 85% Technical MCQ Rounds",
+      expectedKeyPoints: ["Assignment vs comparison operator in C", "Non-zero integer evaluated as truthy in conditional"]
+    },
+    {
+      question: "What is the time complexity of searching an element in a balanced Binary Search Tree (AVL / Red-Black Tree) containing N elements?",
+      options: [
+        "A) O(1)",
+        "B) O(log N)",
+        "C) O(N)",
+        "D) O(N log N)"
+      ],
+      correctOption: "B",
+      explanation: "In a balanced BST, the height of the tree is strictly bounded by O(log N). Every comparison eliminates half the remaining subtrees, making search time complexity O(log N).",
+      topic: "Placement Technical MCQ & Pseudo-Code",
+      difficulty: "Easy",
+      companyTag: "Accenture / Cognizant",
+      pyqFrequency: "Top Technical MCQ PYQ",
+      expectedKeyPoints: ["Balanced tree height property", "Logarithmic search time"]
+    },
+    {
+      question: "What is the output of the following Python code?\n```python\nx = [1, 2, 3]\ny = x\ny.append(4)\nprint(x)\n```",
+      options: [
+        "A) [1, 2, 3]",
+        "B) [1, 2, 3, 4]",
+        "C) [4, 1, 2, 3]",
+        "D) TypeError"
+      ],
+      correctOption: "B",
+      explanation: "In Python, lists are mutable objects. The assignment `y = x` copies the object reference, not the list itself. Modifying `y` directly affects `x` since both point to the same memory location in heap.",
+      topic: "Placement Technical MCQ & Pseudo-Code",
+      difficulty: "Easy",
+      companyTag: "Wipro / Capgemini",
+      pyqFrequency: "Core Python Assessment Question",
+      expectedKeyPoints: ["Reference assignment in Python lists", "Mutability mechanics"]
+    },
+    {
+      question: "Which of the following sorting algorithms is Stable and guarantees O(N log N) worst-case time complexity?",
+      options: [
+        "A) QuickSort",
+        "B) MergeSort",
+        "C) HeapSort",
+        "D) SelectionSort"
+      ],
+      correctOption: "B",
+      explanation: "MergeSort always divides the array in half and merges sorted sub-arrays, guaranteeing O(N log N) time in best, average, and worst cases while preserving relative order of equal elements (Stable). QuickSort is not stable and has O(N^2) worst case; HeapSort is not stable.",
+      topic: "Placement Technical MCQ & Pseudo-Code",
+      difficulty: "Easy",
+      companyTag: "Amazon / Microsoft / Zoho",
+      pyqFrequency: "Universal Placement MCQ",
+      expectedKeyPoints: ["Stability in sorting algorithms", "Worst case complexity comparison"]
+    },
+    {
+      question: "What will be the output of the following Java snippet?\n```java\nString s1 = \"Java\";\nString s2 = new String(\"Java\");\nSystem.out.println(s1 == s2);\nSystem.out.println(s1.equals(s2));\n```",
+      options: [
+        "A) true, true",
+        "B) false, true",
+        "C) true, false",
+        "D) false, false"
+      ],
+      correctOption: "B",
+      explanation: "`s1` is created in String Constant Pool (SCP), while `s2` is created in normal heap memory. `==` checks reference addresses (different -> false), while `.equals()` checks content ('Java' == 'Java' -> true).",
+      topic: "Placement Technical MCQ & Pseudo-Code",
+      difficulty: "Easy",
+      companyTag: "TCS / Tech Mahindra",
+      pyqFrequency: "Top Java MCQ Question",
+      expectedKeyPoints: ["String Constant Pool vs Heap", "Reference equality vs content equality"]
+    },
+    {
+      question: "In SQL, which clause is used to filter groups created by the `GROUP BY` clause?",
+      options: [
+        "A) WHERE",
+        "B) HAVING",
+        "C) ORDER BY",
+        "D) FILTER"
+      ],
+      correctOption: "B",
+      explanation: "`WHERE` filters individual rows before grouping. `HAVING` filters aggregated group results after `GROUP BY` is executed.",
+      topic: "Placement Technical MCQ & Pseudo-Code",
+      difficulty: "Easy",
+      companyTag: "Cognizant / Accenture",
+      pyqFrequency: "Standard SQL MCQ",
+      expectedKeyPoints: ["WHERE vs HAVING clause difference", "Filtering after aggregation"]
+    }
+  ],
   "C Programming": [
     {
       question: "What is the difference between malloc() and calloc() in C, and why is typecasting needed?",
@@ -114,53 +212,6 @@ const FALLBACK_QUESTIONS = {
         "static: Retains value across function calls throughout program lifetime",
         "extern: Global scope across multiple source files",
         "register: Request CPU register storage for fast access"
-      ]
-    },
-    {
-      question: "What is the difference between Structure (`struct`) and Union (`union`) in C, and what is Structure Padding?",
-      topic: "C Programming",
-      difficulty: "Easy",
-      companyTag: "Zoho / Cisco",
-      pyqFrequency: "Top Hardware & Software PYQ",
-      expectedKeyPoints: [
-        "struct allocates memory for all members; size is sum + padding",
-        "union shares memory across all members; size equals largest member",
-        "Padding aligns members to word boundaries (e.g. 4-byte/8-byte) for CPU read efficiency"
-      ]
-    },
-    {
-      question: "What is the difference between `const char* p`, `char* const p`, and `const char* const p` in C?",
-      topic: "C Programming",
-      difficulty: "Easy",
-      companyTag: "Amazon / Microsoft",
-      pyqFrequency: "Top Pointer Viva Question",
-      expectedKeyPoints: [
-        "const char* p: Pointer to constant data (value cannot change)",
-        "char* const p: Constant pointer (address cannot change)",
-        "const char* const p: Constant pointer to constant data (neither can change)"
-      ]
-    },
-    {
-      question: "What is the difference between `sizeof` operator and `strlen()` library function in C?",
-      topic: "C Programming",
-      difficulty: "Easy",
-      companyTag: "Accenture / Infosys",
-      pyqFrequency: "Standard String PYQ",
-      expectedKeyPoints: [
-        "sizeof is a compile-time unary operator giving total allocated bytes including '\\0'",
-        "strlen() is a runtime function counting characters until the first null terminator '\\0'"
-      ]
-    },
-    {
-      question: "How do Preprocessor Directives like `#define` macros differ from `const` variables and inline functions in C?",
-      topic: "C Programming",
-      difficulty: "Easy",
-      companyTag: "TCS / Cognizant",
-      pyqFrequency: "Frequent C Placement PYQ",
-      expectedKeyPoints: [
-        "#define is textual replacement during preprocessing without type checking",
-        "const is type-safe and evaluated by the compiler",
-        "Inline functions provide function call speed with type safety"
       ]
     }
   ],
@@ -213,52 +264,6 @@ const FALLBACK_QUESTIONS = {
         "finally: Block in try-catch that executes unconditionally for resource cleanup",
         "finalize(): Method called by Garbage Collector before destroying object (deprecated)"
       ]
-    },
-    {
-      question: "What is the difference between an Abstract Class and an Interface in Java 8+?",
-      topic: "Java (Core & OOPs)",
-      difficulty: "Easy",
-      companyTag: "Amazon / Microsoft / Wipro",
-      pyqFrequency: "High Yield OOPs Question",
-      expectedKeyPoints: [
-        "Abstract class can have state/instance variables, constructors, and method implementations",
-        "Interface defines contract; in Java 8+ supports default & static methods, Java 9+ private methods",
-        "Class can implement multiple interfaces but inherit only one class"
-      ]
-    },
-    {
-      question: "What is the difference between `ArrayList` and `LinkedList` in Java Collections Framework?",
-      topic: "Java (Core & OOPs)",
-      difficulty: "Easy",
-      companyTag: "Cognizant / Accenture",
-      pyqFrequency: "Top Collections PYQ",
-      expectedKeyPoints: [
-        "ArrayList uses dynamic resizable array: O(1) random access, O(n) middle insertions",
-        "LinkedList uses doubly linked list: O(n) access, O(1) insertion/deletion at nodes"
-      ]
-    },
-    {
-      question: "Explain Exception Handling hierarchy in Java: Checked vs Unchecked (Runtime) Exceptions.",
-      topic: "Java (Core & OOPs)",
-      difficulty: "Easy",
-      companyTag: "Infosys / TCS",
-      pyqFrequency: "Universal Java Viva PYQ",
-      expectedKeyPoints: [
-        "Throwable is root class with Exception and Error subclasses",
-        "Checked exceptions (IOException, SQLException) checked at compile time",
-        "Unchecked exceptions (NullPointerException, ArrayIndexOutOfBoundsException) occur at runtime"
-      ]
-    },
-    {
-      question: "How does Garbage Collection and Memory Management (Heap vs Stack) work in Java?",
-      topic: "Java (Core & OOPs)",
-      difficulty: "Easy",
-      companyTag: "Zoho / Cisco",
-      pyqFrequency: "JVM Placement PYQ",
-      expectedKeyPoints: [
-        "Stack stores primitive variables and method call frames",
-        "Heap stores objects and instance variables managed by Garbage Collector (Young/Old gen)"
-      ]
     }
   ],
   "C++ (OOPs & STL)": [
@@ -296,50 +301,6 @@ const FALLBACK_QUESTIONS = {
         "vector: Dynamic contiguous array, fast random access O(1), costly middle insertion O(n)",
         "list: Doubly linked list, non-contiguous, fast insertion/deletion O(1), no random access O(n)"
       ]
-    },
-    {
-      question: "Why should a Destructor be declared `virtual` in a Base class in C++?",
-      topic: "C++ (OOPs & STL)",
-      difficulty: "Easy",
-      companyTag: "Cisco / Adobe",
-      pyqFrequency: "Crucial Memory/OOPs PYQ",
-      expectedKeyPoints: [
-        "Ensures derived class destructor is called when deleting derived object via base class pointer",
-        "Prevents resource leaks and undefined behavior"
-      ]
-    },
-    {
-      question: "What is the difference between Reference (`&`) and Pointer (`*`) in C++?",
-      topic: "C++ (OOPs & STL)",
-      difficulty: "Easy",
-      companyTag: "Wipro / Tech Mahindra",
-      pyqFrequency: "Core C++ Viva Question",
-      expectedKeyPoints: [
-        "Reference cannot be NULL and must be initialized upon declaration; cannot be reseated",
-        "Pointer can be NULL, re-assigned to different memory addresses, and supports pointer arithmetic"
-      ]
-    },
-    {
-      question: "What is the difference between `map` (Red-Black Tree) and `unordered_map` (Hash Table) in C++ STL?",
-      topic: "C++ (OOPs & STL)",
-      difficulty: "Easy",
-      companyTag: "Amazon / Infosys",
-      pyqFrequency: "Top STL Data Structure PYQ",
-      expectedKeyPoints: [
-        "std::map: Ordered keys, implemented as Self-Balancing BST (Red-Black Tree), O(log n) operations",
-        "std::unordered_map: Unordered keys, implemented as Hash Table, O(1) average operations"
-      ]
-    },
-    {
-      question: "What is the Diamond Problem in multiple inheritance and how does Virtual Inheritance solve it in C++?",
-      topic: "C++ (OOPs & STL)",
-      difficulty: "Easy",
-      companyTag: "Capgemini / TCS",
-      pyqFrequency: "OOPs Ambiguity PYQ",
-      expectedKeyPoints: [
-        "Diamond problem: Ambiguity when two derived classes inherit from a base class and child inherits both",
-        "Virtual base classes (`virtual public Base`) ensure only one copy of base class exists in most-derived object"
-      ]
     }
   ],
   "Python (Core & Scripting)": [
@@ -376,51 +337,6 @@ const FALLBACK_QUESTIONS = {
         "Decorator: Function modifying/extending behavior of another function without altering code (`@decorator`)",
         "Generator: Function producing stream of values lazily with `yield`, saving RAM"
       ]
-    },
-    {
-      question: "What is PEP 8, and how does memory management work in Python (Reference Counting and Garbage Collection)?",
-      topic: "Python (Core & Scripting)",
-      difficulty: "Easy",
-      companyTag: "Tech Mahindra / Zoho",
-      pyqFrequency: "Standard Python Viva PYQ",
-      expectedKeyPoints: [
-        "PEP 8 is the official Python style guide",
-        "Reference counting deallocates object when reference count hits 0",
-        "Cyclic GC handles circular references"
-      ]
-    },
-    {
-      question: "What is the difference between `*args` and `**kwargs` in Python function definitions?",
-      topic: "Python (Core & Scripting)",
-      difficulty: "Easy",
-      companyTag: "Infosys / TCS",
-      pyqFrequency: "Python Arguments PYQ",
-      expectedKeyPoints: [
-        "*args allows passing variable number of non-keyword positional arguments as a tuple",
-        "**kwargs allows passing variable number of keyword arguments as a dictionary"
-      ]
-    },
-    {
-      question: "What are Lambda functions in Python and how do you use them with `map()`, `filter()`, and `reduce()`?",
-      topic: "Python (Core & Scripting)",
-      difficulty: "Easy",
-      companyTag: "Accenture / Wipro",
-      pyqFrequency: "Functional Python PYQ",
-      expectedKeyPoints: [
-        "Lambda is an anonymous inline function with single expression (`lambda x: x*2`)",
-        "map applies function to all elements; filter selects elements based on boolean predicate"
-      ]
-    },
-    {
-      question: "What is the difference between `append()` and `extend()` methods in Python lists?",
-      topic: "Python (Core & Scripting)",
-      difficulty: "Easy",
-      companyTag: "Cognizant / Capgemini",
-      pyqFrequency: "Basic Python Syntax PYQ",
-      expectedKeyPoints: [
-        "append(x) adds argument as a single element at end of list",
-        "extend(iterable) iterates over argument and adds each element individually"
-      ]
     }
   ],
   "DBMS & SQL": [
@@ -448,29 +364,6 @@ const FALLBACK_QUESTIONS = {
         "Unique Key: Unique values, accepts 1 NULL (multiple per table)",
         "Foreign Key: Refers to Primary Key in another table, enforces referential integrity"
       ]
-    },
-    {
-      question: "What is the difference between DELETE, TRUNCATE, and DROP commands in SQL?",
-      topic: "DBMS & SQL",
-      difficulty: "Easy",
-      companyTag: "Capgemini / Tech Mahindra",
-      pyqFrequency: "Frequent SQL Placement PYQ",
-      expectedKeyPoints: [
-        "DELETE: DML command, deletes specific rows with WHERE, rollable",
-        "TRUNCATE: DDL command, deletes all rows instantly, resets auto-increment",
-        "DROP: DDL command, completely removes table structure and data"
-      ]
-    },
-    {
-      question: "What is the difference between Clustered and Non-Clustered Indexes in SQL?",
-      topic: "DBMS & SQL",
-      difficulty: "Easy",
-      companyTag: "Amazon / Microsoft",
-      pyqFrequency: "High Frequency Indexing PYQ",
-      expectedKeyPoints: [
-        "Clustered: Determines physical storage order of data (only 1 per table)",
-        "Non-Clustered: Separate structure with pointers to physical data (multiple per table)"
-      ]
     }
   ],
   "Operating Systems": [
@@ -496,17 +389,6 @@ const FALLBACK_QUESTIONS = {
         "Deadlock is permanent blocking of processes waiting for mutual resources",
         "4 Conditions: Mutual Exclusion, Hold and Wait, No Preemption, Circular Wait"
       ]
-    },
-    {
-      question: "What is Paging in Virtual Memory, and what is Thrashing?",
-      topic: "Operating Systems",
-      difficulty: "Easy",
-      companyTag: "Accenture / Capgemini",
-      pyqFrequency: "Core Memory OS PYQ",
-      expectedKeyPoints: [
-        "Paging divides memory into fixed-size frames and pages, avoiding external fragmentation",
-        "Thrashing occurs when OS spends more time swapping pages in/out than executing processes"
-      ]
     }
   ],
   "Computer Networks": [
@@ -519,18 +401,6 @@ const FALLBACK_QUESTIONS = {
       expectedKeyPoints: [
         "SYN -> SYN-ACK -> ACK sequence",
         "TCP: Reliable, connection-oriented, ordered; UDP: Unreliable, connectionless, high speed"
-      ]
-    },
-    {
-      question: "What happens step-by-step when you type 'https://www.google.com' in your browser?",
-      topic: "Computer Networks",
-      difficulty: "Easy",
-      companyTag: "Amazon / Microsoft / Zoho",
-      pyqFrequency: "Top Placement Architecture PYQ",
-      expectedKeyPoints: [
-        "DNS resolution translates domain to IP address",
-        "TCP 3-way handshake & TLS handshake established",
-        "HTTP GET request sent and web resources rendered by browser"
       ]
     }
   ],
@@ -545,17 +415,6 @@ const FALLBACK_QUESTIONS = {
         "Array: Contiguous memory, O(1) random access, fixed size, O(n) middle insertion",
         "Linked List: Non-contiguous, O(n) sequential access, dynamic size, O(1) head insertion"
       ]
-    },
-    {
-      question: "What is the difference between Stack and Queue, and how do you implement a Queue using two Stacks?",
-      topic: "Data Structures & Algorithms",
-      difficulty: "Easy",
-      companyTag: "Amazon / Microsoft / Accenture",
-      pyqFrequency: "High Frequency Placement PYQ",
-      expectedKeyPoints: [
-        "Stack: LIFO (Last In First Out); Queue: FIFO (First In First Out)",
-        "Enqueue into stack1; dequeue by popping from stack2 (if empty, transfer all from stack1 to stack2)"
-      ]
     }
   ],
   "React & Full Stack (MERN)": [
@@ -568,17 +427,6 @@ const FALLBACK_QUESTIONS = {
       expectedKeyPoints: [
         "Virtual DOM is lightweight in-memory representation of real DOM",
         "Diffing algorithm calculates minimal batch updates to real DOM"
-      ]
-    },
-    {
-      question: "What is the difference between `state` and `props` in React?",
-      topic: "React & Full Stack (MERN)",
-      difficulty: "Easy",
-      companyTag: "Accenture / Cognizant",
-      pyqFrequency: "Essential React Viva Question",
-      expectedKeyPoints: [
-        "Props: Read-only data passed from parent to child",
-        "State: Mutable internal data triggering re-render on change"
       ]
     }
   ]
@@ -593,13 +441,13 @@ function fallbackEvaluation(question, userAnswer, topic, difficulty) {
     return {
       score: 4,
       verdict: "Needs Improvement",
-      feedback: "Your answer is too short for a campus placement interview. In technical rounds, define the concept clearly, provide syntax or example, and mention advantages.",
+      feedback: "Your answer is too brief for a campus recruitment interview. State the core definition, provide syntax or example, and discuss advantages.",
       missedPoints: [
         "State formal definition and primary purpose",
         "Explain internal mechanism or real-world example",
         "Mention advantages and performance characteristics"
       ],
-      idealAnswer: `For placement viva in **${topic}**: Always structure your answer into: (1) Core definition, (2) Syntax / working steps, (3) Practical use case or trade-offs.`
+      idealAnswer: `For placement viva in **${topic}**: Structure your response as: (1) Core definition, (2) Syntax / working steps, (3) Practical use case or trade-offs.`
     };
   }
 
@@ -609,7 +457,7 @@ function fallbackEvaluation(question, userAnswer, topic, difficulty) {
   return {
     score: score,
     verdict: verdict,
-    feedback: `Good technical explanation for this **${topic}** placement question! You demonstrated sound conceptual knowledge. To score 10/10 in technical rounds, state formal keywords and mention code/syntax nuances.`,
+    feedback: `Good technical explanation for this **${topic}** question! You demonstrated sound conceptual understanding. To score 10/10 in technical rounds, state formal keywords and code syntax nuances.`,
     missedPoints: [
       "Include specific language syntax or execution steps",
       "Mention memory management or complexity if applicable"
@@ -692,7 +540,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// 3. Viva: Generate Placement PYQ Question (Anti-Repeat Dynamic Selection)
+// 3. Viva: Generate Placement PYQ Question (MCQ & Theoretical Support)
 app.post("/api/viva/question", async (req, res) => {
   const {
     topic = "C Programming",
@@ -701,13 +549,45 @@ app.post("/api/viva/question", async (req, res) => {
     recentQuestions = []
   } = req.body || {};
 
+  const isMcq = topic === "Placement Technical MCQ & Pseudo-Code";
+
   try {
     const recentListStr = Array.isArray(recentQuestions) && recentQuestions.length > 0
       ? recentQuestions.slice(-10).map((q, i) => `${i + 1}. "${q}"`).join("\n")
       : "None";
 
-    const prompt = `You are a campus placement technical interviewer for companies like TCS, Infosys, Wipro, Accenture, Cognizant, Amazon, Microsoft.
-Generate 1 frequent, high-yield placement PYQ at ${difficulty} level for topic: ${topic}.
+    let prompt = "";
+
+    if (isMcq) {
+      prompt = `You are an expert technical assessment creator for campus placement tests at companies like TCS NQT, Infosys, Accenture, Cognizant, Wipro, Amazon.
+Generate 1 high-yield, realistic technical MCQ / output-finding / pseudo-code question at ${difficulty} level.
+Company Focus: ${company}
+
+CRITICAL ANTI-REPEAT INSTRUCTION:
+DO NOT generate any of the following recently asked questions:
+${recentListStr}
+
+Return ONLY valid JSON matching this schema:
+{
+  "type": "mcq",
+  "question": "Question text with clear code block if output-based",
+  "options": [
+    "A) Option A text",
+    "B) Option B text",
+    "C) Option C text",
+    "D) Option D text"
+  ],
+  "correctOption": "A" | "B" | "C" | "D",
+  "explanation": "2-3 sentences explaining why the correct option is right and the trick behind it",
+  "topic": "${topic}",
+  "difficulty": "${difficulty}",
+  "companyTag": "${company === "All Top Companies" ? "TCS NQT / Infosys / Accenture" : company}",
+  "pyqFrequency": "Asked in 85%+ Online Assessments",
+  "expectedKeyPoints": ["Core concept tested", "Execution logic"]
+}`;
+    } else {
+      prompt = `You are a campus placement technical interviewer for companies like TCS, Infosys, Wipro, Accenture, Cognizant, Amazon, Microsoft.
+Generate 1 frequent, high-yield placement viva question at ${difficulty} level for topic: ${topic}.
 Company Focus: ${company}
 
 CRITICAL ANTI-REPEAT INSTRUCTION:
@@ -718,6 +598,7 @@ Pick a completely fresh, distinct sub-concept in ${topic}.
 
 Return ONLY valid JSON matching this schema:
 {
+  "type": "viva",
   "question": "Clear, direct viva question frequently asked in placement drives",
   "topic": "${topic}",
   "difficulty": "${difficulty}",
@@ -725,6 +606,7 @@ Return ONLY valid JSON matching this schema:
   "pyqFrequency": "Frequently asked in 80%+ Technical Rounds",
   "expectedKeyPoints": ["Core Definition/Concept", "Internal Working / Mechanism", "Real-world example or trade-off"]
 }`;
+    }
 
     const data = await callGeminiWithFailover(async (modelName) => {
       const response = await ai.models.generateContent({
@@ -732,7 +614,7 @@ Return ONLY valid JSON matching this schema:
         contents: prompt,
         config: {
           responseMimeType: "application/json",
-          maxOutputTokens: 380, // Low tokens for ultra-fast generation
+          maxOutputTokens: 480,
         },
       });
       const parsed = cleanJson(response.text);
@@ -746,18 +628,20 @@ Return ONLY valid JSON matching this schema:
   } catch (error) {
     console.warn("Viva Question AI generation failed, using curated non-repeating PYQ bank fallback:", error.message);
     
-    const topicQuestions = FALLBACK_QUESTIONS[topic] || FALLBACK_QUESTIONS["C Programming"];
+    const topicQuestions = FALLBACK_QUESTIONS[topic] || FALLBACK_QUESTIONS["Placement Technical MCQ & Pseudo-Code"];
     
-    // Filter out questions that have already been asked
     const askedSet = new Set((recentQuestions || []).map(q => (q || "").toLowerCase().trim()));
     const unaskedQuestions = topicQuestions.filter(q => !askedSet.has(q.question.toLowerCase().trim()));
     
-    // If all questions have been asked, shuffle from the full list
     const candidatePool = unaskedQuestions.length > 0 ? unaskedQuestions : topicQuestions;
     const randomQuestion = candidatePool[Math.floor(Math.random() * candidatePool.length)];
     
     res.json({
+      type: isMcq ? "mcq" : "viva",
       question: randomQuestion.question,
+      options: randomQuestion.options || null,
+      correctOption: randomQuestion.correctOption || null,
+      explanation: randomQuestion.explanation || null,
       topic: topic,
       difficulty: difficulty,
       companyTag: randomQuestion.companyTag || (company !== "All Top Companies" ? company : "TCS / Infosys / Accenture"),
@@ -768,12 +652,39 @@ Return ONLY valid JSON matching this schema:
   }
 });
 
-// 4. Viva: Evaluate Candidate Answer
+// 4. Viva: Evaluate Candidate Answer (Handles both MCQ & Theoretical Viva)
 app.post("/api/viva/evaluate", async (req, res) => {
-  const { question, userAnswer, topic = "Computer Science", difficulty = "Easy" } = req.body || {};
+  const {
+    question,
+    userAnswer,
+    topic = "Computer Science",
+    difficulty = "Easy",
+    isMcq = false,
+    correctOption = null,
+    explanation = null
+  } = req.body || {};
 
   if (!userAnswer || !userAnswer.trim()) {
     return res.status(400).json({ error: "User answer is required" });
+  }
+
+  // Instant precise evaluation for MCQs
+  if (isMcq && correctOption) {
+    const userClean = userAnswer.trim().toUpperCase();
+    const correctClean = correctOption.trim().toUpperCase();
+    
+    // Check if user answer starts with or matches correct option letter (A, B, C, D)
+    const isCorrect = userClean.startsWith(correctClean) || userClean.includes(`OPTION ${correctClean}`) || userClean.includes(`(${correctClean})`);
+
+    return res.json({
+      score: isCorrect ? 10 : 0,
+      verdict: isCorrect ? "Correct Option! 🎉" : "Incorrect Option ❌",
+      feedback: isCorrect
+        ? `Spot on! Option ${correctClean} is the correct answer.`
+        : `Option ${correctClean} is the correct answer. You selected: ${userAnswer}.`,
+      missedPoints: isCorrect ? [] : ["Review the concept and execution mechanism below."],
+      idealAnswer: explanation || `The correct option is **${correctClean}**.`
+    });
   }
 
   try {
